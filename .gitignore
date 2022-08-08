@@ -1,1 +1,4 @@
-*.py.bak
+*.bak
+
+dist/
+src/pypi_cache.egg-info/

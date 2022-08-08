@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pypi-cache"
+version = "0.0.1"
+authors = [
+  { name="German Navarro", email="ge.najim@gmail.com" },
+]
+description = "An utility to generate a local PyPI cache for selected packages based on the PyPI.org repositories."
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache License 2.0",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/UB-Quantic/pypi-cache"
