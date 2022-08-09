@@ -17,6 +17,9 @@ classifiers = [
     "License :: OSI Approved :: Apache License 2.0",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+  "beautifulsoup4==4.11.1",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/UB-Quantic/pypi-cache"
