@@ -24,3 +24,7 @@ dependencies = [
 
 [project.urls]
 "Homepage" = "https://github.com/UB-Quantic/pypi-cache"
+
+[project.scripts]
+pypi-cache-add = "pypi_cache:add"
+pypi-cache-update = "pypi_cache:update"
