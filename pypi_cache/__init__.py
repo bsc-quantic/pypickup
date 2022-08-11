@@ -8,6 +8,8 @@ import re
 from bs4 import BeautifulSoup
 import wheel_filename
 
+from typing import Tuple
+
 
 class HTMLManager:
 
@@ -56,7 +58,7 @@ class HTMLManager:
 
         return resultingHTML
 
-    def insertPackageEntry(self, htmlString: str, pypiLocalPath: str, packageName: str) -> tuple[bool, str]:
+    def insertPackageEntry(self, htmlString: str, pypiLocalPath: str, packageName: str) -> Tuple[bool, str]:
         """Appends a new element <a> into the 'htmlString' body whose href attribute is the 'packageName'. Returns whether the entry already exists in the htmlString."""
 
         soup = BeautifulSoup(htmlString, "html.parser")
