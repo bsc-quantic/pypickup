@@ -38,12 +38,21 @@ class HTMLManager:
 
         return resultingHTML
 
+    def __getDecodedASCII(self, htmlString: str) -> str:
+        htmlCodes = (("'", "&#39;"), ('"', "&quot;"), (">", "&gt;"), ("<", "&lt;"), ("&", "&amp;"))
+
+        for code in htmlCodes:
+            htmlString = htmlString.replace(code[1], code[0])
+
+        return htmlString
+
     def __prettifyHTML(self, htmlSoup: BeautifulSoup) -> str:
         """Lets the 'htmlString' formatted as desired."""
 
         resultingHTML: str = str(htmlSoup.prettify())
 
         resultingHTML = self.__getElementContentInlined(resultingHTML, "a")
+        resultingHTML = self.__getDecodedASCII(resultingHTML)
 
         return resultingHTML
 
@@ -107,8 +116,7 @@ class HTMLManager:
         self.__addZipsOrTarsToEntries(zipAndTarsDict, originalSoup, aEntriesOutput)
 
         for aEntry in aEntriesOutput:
-            # print(aEntry.decode("utf-8"))
-            outputSoup.html.body.append(str(aEntry, encoding="utf-8"))
+            outputSoup.html.body.append(aEntry)
 
         return self.__prettifyHTML(outputSoup)
 
@@ -227,11 +235,11 @@ class LocalPyPIController:
         packageHTML_file.close()
 
         linksToDownload: dict = self._htmlManager.getHRefsList(pypiPackageHTML)
-        
-        print("Downloading " + str(len(dict)) + " files:")
+
+        print("Downloading " + str(len(linksToDownload)) + " files:")
         packageCounter: int = 1
         for fileName, fileLink in linksToDownload.items():
-            print("Downloading package #" + str(packageCounter) + ": '" + fileName + "'...", flush = True)
+            print("Downloading package #" + str(packageCounter) + ": '" + fileName + "'...", flush=True)
             request.urlretrieve(fileLink, self.pypiLocalPath + "/" + self.packageName + "/" + fileName)
 
             packageCounter = packageCounter + 1
