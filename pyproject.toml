@@ -33,8 +33,8 @@ packages = ["pypi_cache"]
 pypi-cache = "pypi_cache.cli:cli"
 
 [project.entry-points."pypi_cache.cmd"]
-add = "pypi_cache:add"
-update = "pypi_cache:update"
+add = "pypi_cache.cmd:Add"
+update = "pypi_cache.cmd:Update"
 
 [tool.black]
 line-length = 1000
