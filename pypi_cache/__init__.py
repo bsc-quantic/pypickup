@@ -227,9 +227,14 @@ class LocalPyPIController:
         packageHTML_file.close()
 
         linksToDownload: dict = self._htmlManager.getHRefsList(pypiPackageHTML)
+        
+        print("Downloading " + str(len(dict)) + " files:")
+        packageCounter: int = 1
         for fileName, fileLink in linksToDownload.items():
-            print("Downloading package '" + fileName + "'...", flush=True)
+            print("Downloading package #" + str(packageCounter) + ": '" + fileName + "'...", flush = True)
             request.urlretrieve(fileLink, self.pypiLocalPath + "/" + self.packageName + "/" + fileName)
+
+            packageCounter = packageCounter + 1
 
 
 def add():
