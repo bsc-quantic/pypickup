@@ -71,7 +71,7 @@ class HTMLManager:
     def __addZipsOrTarsToEntries(self, zipAndTarsDict: dict, originalSoup: BeautifulSoup, aEntriesOutput: list):
         for name, ext in zipAndTarsDict.items():
 
-            aEntry: str = originalSoup.find("a", string = name + "." + ext)
+            aEntry: str = originalSoup.find("a", string=name + "." + ext)
             if not aEntry is None:
                 aEntriesOutput.append(aEntry)
 
