@@ -23,6 +23,9 @@ dependencies = [
   "wheel_filename==1.4.1",
 ]
 
+[tool.setuptools]
+packages = ["pypi_cache"]
+
 [project.urls]
 "Homepage" = "https://github.com/UB-Quantic/pypi-cache"
 
