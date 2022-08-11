@@ -249,9 +249,4 @@ def add():
 
 
 def update():
-
     return None
-
-
-def main():
-    add()

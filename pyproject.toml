@@ -11,7 +11,7 @@ authors = [
 description = "An utility to generate a local PyPI cache for selected packages based on the PyPI.org repositories."
 readme = "README.md"
 license = { file="LICENSE" }
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
@@ -27,5 +27,8 @@ dependencies = [
 "Homepage" = "https://github.com/UB-Quantic/pypi-cache"
 
 [project.scripts]
-pypi-cache-add = "pypi_cache:add"
-pypi-cache-update = "pypi_cache:update"
+pypi-cache = "pypi_cache.cli:cli"
+
+[project.entry-points."pypi_cache.command"]
+add = "pypi_cache:add"
+update = "pypi_cache:main"
