@@ -32,7 +32,7 @@ packages = ["pypi_cache"]
 [project.scripts]
 pypi-cache = "pypi_cache.cli:cli"
 
-[project.entry-points."pypi_cache.command"]
+[project.entry-points."pypi_cache.cmd"]
 add = "pypi_cache:add"
 update = "pypi_cache:update"
 
