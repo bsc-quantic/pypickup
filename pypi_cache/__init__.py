@@ -2,10 +2,11 @@
 import os
 
 import argparse
-
-from bs4 import BeautifulSoup
 from urllib import request
 import re
+
+from bs4 import BeautifulSoup
+import wheel_filename
 
 
 class HTMLManager:
@@ -60,21 +61,54 @@ class HTMLManager:
 
         return False, self.__prettifyHTML(soup)
 
-    def filterInHTML(self, htmlContent: str, regexList: list, packageName: str) -> str:
+    def __isWheel(self, entry: str) -> bool:
+        try:
+            wheel_filename.parse_wheel_filename(entry)
+            return True
+        except wheel_filename.InvalidFilenameError:
+            return False
+
+    def __addZipsOrTarsToEntries(self, zipAndTarsDict: dict, originalSoup: BeautifulSoup, aEntriesOutput: list):
+        for name, ext in zipAndTarsDict.items():
+
+            aEntry: str = originalSoup.find("a", string = name + "." + ext)
+            if not aEntry is None:
+                aEntriesOutput.append(aEntry)
+
+    def filterInHTML(self, htmlContent: str, regexZIPAndTars: str, packageName: str) -> str:
         """Keeps <a> entries in 'htmlContent' that matches some regular expressión in 'regexList'. The ones that do not match are filtered out."""
 
         outputSoup = BeautifulSoup(self._baseHTML_fromScratch, "html.parser")
-        newEntry = outputSoup.new_tag("h1")
-        newEntry.string = "Links for " + packageName
-        outputSoup.html.body.append(newEntry)
+        headEntry = outputSoup.new_tag("h1")
+        headEntry.string = "Links for " + packageName
+        outputSoup.html.body.append(headEntry)
+
+        zipAndTarsDict: dict[str, str] = dict()
 
         originalSoup = BeautifulSoup(htmlContent, "html.parser")
-        for regexEntry in regexList:
-            # inEntries: list = originalSoup.find_all(string = re.compile(regexEntry))
-            inEntries: list = originalSoup.find_all("a", string=re.compile(regexEntry))
+        aEntries: list = originalSoup.find_all("a")
 
-            for inEntry in inEntries:
-                outputSoup.html.body.append(inEntry)
+        aEntriesOutput: list = list()
+        for aEntry in aEntries:
+            if self.__isWheel(aEntry.string):
+                aEntriesOutput.append(aEntry)
+            else:
+                reSult = re.match(regexZIPAndTars, aEntry.string)
+                if reSult:
+                    reSultName: str = reSult.group(1)
+                    reSultExtension: str = reSult.group(2)
+
+                    if reSultExtension == "zip":
+                        zipAndTarsDict[reSultName] = reSultExtension
+                    else:
+                        if not reSultName in zipAndTarsDict.keys():
+                            zipAndTarsDict[reSultName] = reSultExtension
+
+        self.__addZipsOrTarsToEntries(zipAndTarsDict, originalSoup, aEntriesOutput)
+
+        for aEntry in aEntriesOutput:
+            # print(aEntry.decode("utf-8"))
+            outputSoup.html.body.append(str(aEntry, encoding="utf-8"))
 
         return self.__prettifyHTML(outputSoup)
 
@@ -102,12 +136,11 @@ class LocalPyPIController:
     _packageHTMLFileName: str = "index.html"
     _remotePypiBaseDir: str = "https://pypi.org/simple/"
 
-    _regexListIn: list = list()
-    _regexListOut: list = list()
-
     def __init__(self):
         self._packageName: str
         self._pypiLocalPath: str
+
+        self._regexZIPAndTars: str
 
     @property
     def packageName(self):
@@ -126,8 +159,7 @@ class LocalPyPIController:
         self._pypiLocalPath = new_PyPiLocalPath
 
     def __initRegexs(self):
-        self._regexListIn.append("^" + self.packageName + ".*\.(zip|tar.gz)$")  # .zip or tar.gz files
-        # self._regexListIn.append("^numpy-.+cp\.whl$")
+        self._regexZIPAndTars = "^(" + self.packageName + ".*)\.(zip|tar.gz)$"
 
     def parseScriptArguments(self):
         """Parses the application arguments."""
@@ -189,7 +221,7 @@ class LocalPyPIController:
 
         pypiPackageHTML: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
 
-        pypiPackageHTML: str = self._htmlManager.filterInHTML(pypiPackageHTML, self._regexListIn, self.packageName)
+        pypiPackageHTML: str = self._htmlManager.filterInHTML(pypiPackageHTML, self._regexZIPAndTars, self.packageName)
         packageHTML_file = open(self.pypiLocalPath + "/" + self.packageName + "/" + self._packageHTMLFileName, "w")
         packageHTML_file.write(pypiPackageHTML)
         packageHTML_file.close()
@@ -207,7 +239,14 @@ def add():
     needToDownloadFiles: bool = controllerInstance.initLocalRepo()
     if needToDownloadFiles:
         controllerInstance.downloadFiles()
+    else:
+        print("Package " + controllerInstance.packageName + " is being already tracked. Try to update it instead to synchronize changes.")
+
 
 def update():
 
     return None
+
+
+def main():
+    add()
