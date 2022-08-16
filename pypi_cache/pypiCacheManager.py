@@ -171,15 +171,7 @@ class LocalPyPIController:
     def __initRegexs(self):
         self._regexZIPAndTars = "^(" + self.packageName + ".*)\.(zip|tar.gz)$"
 
-    def parseScriptArguments(self):
-        """Parses the application arguments."""
-
-        parser = argparse.ArgumentParser(description="Download PyPI into local folder.")
-        parser.add_argument("packageName", type=str, default="", help="Python package to download.")
-        parser.add_argument("-p", "--pypiLocalPath", dest="pypiLocalPath", type=str, default="./localPyPI/", help="Local root path to download the package from PyPI.")
-
-        args = parser.parse_args()
-
+    def parseScriptArguments(self, args: argparse.ArgumentParser):
         self.packageName = args.packageName
         self.pypiLocalPath = args.pypiLocalPath
 
@@ -245,18 +237,3 @@ class LocalPyPIController:
             request.urlretrieve(fileLink, self.pypiLocalPath + "/" + self.packageName + "/" + fileName)
 
             packageCounter = packageCounter + 1
-
-
-def add():
-    controllerInstance = LocalPyPIController()
-
-    controllerInstance.parseScriptArguments()
-    needToDownloadFiles: bool = controllerInstance.initLocalRepo()
-    if needToDownloadFiles:
-        controllerInstance.downloadFiles()
-    else:
-        print("Package " + controllerInstance.packageName + " is being already tracked. Try to update it instead to synchronize changes.")
-
-
-def update():
-    return None
