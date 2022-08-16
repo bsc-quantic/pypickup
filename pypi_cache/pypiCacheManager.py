@@ -72,9 +72,12 @@ class HTMLManager:
 
         return False, self.__prettifyHTML(soup)
 
-    def __isWheel(self, entry: str) -> bool:
+    def __isValidWheel(self, entry: str) -> bool:
         try:
-            wheel_filename.parse_wheel_filename(entry)
+            parsedWheel = wheel_filename.parse_wheel_filename(entry)
+
+            # ToDo: build a command "config" to set a file with the key words that we will use to filter out a wheel by a certain field (using the ones at 'parsedWheel')
+
             return True
         except wheel_filename.InvalidFilenameError:
             return False
@@ -87,7 +90,7 @@ class HTMLManager:
                 aEntriesOutput.append(aEntry)
 
     def filterInHTML(self, htmlContent: str, regexZIPAndTars: str, packageName: str) -> str:
-        """Keeps <a> entries in 'htmlContent' that matches some regular expressión in 'regexList'. The ones that do not match are filtered out."""
+        """Keeps <a> entries in 'htmlContent' that are .whl or zip (or tar.gz, in case it doesn't exists a homonym .zip). The ones that do not match any are filtered out."""
 
         outputSoup = BeautifulSoup(self._baseHTML_fromScratch, "html.parser")
         headEntry = outputSoup.new_tag("h1")
@@ -101,7 +104,7 @@ class HTMLManager:
 
         aEntriesOutput: list = list()
         for aEntry in aEntries:
-            if self.__isWheel(aEntry.string):
+            if self.__isValidWheel(aEntry.string):
                 aEntriesOutput.append(aEntry)
             else:
                 reSult = re.match(regexZIPAndTars, aEntry.string)
@@ -219,7 +222,7 @@ class LocalPyPIController:
         return needToDownloadFiles
 
     def downloadFiles(self):
-        """Downloads all the files for the required package 'packageName', i.e. all the .whl, the .zip (source code) and the HTML ¿?."""
+        """Downloads all the files for the required package 'packageName', i.e. all the .whl, the .zip and the .tar.gz if necessary."""
 
         pypiPackageHTML: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
 
