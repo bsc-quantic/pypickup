@@ -7,7 +7,7 @@ class Add:
     @staticmethod
     def init_subparser(parser: argparse.ArgumentParser):
         parser.add_argument("packageName", type=str, default="", help="Python package to download.")
-        parser.add_argument("-p", "--pypiLocalPath", dest="pypiLocalPath", type=str, default="./localPyPI/", help="Local root path to download the package from PyPI.")
+        parser.add_argument("-p", "--pypi-local-path", dest="pypiLocalPath", type=str, default="~/.pypi-cache/", help="Local root path to download the package from PyPI.")
 
     @staticmethod
     def run(args: argparse.Namespace):
