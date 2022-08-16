@@ -2,6 +2,7 @@ import argparse
 
 from pypi_cache.pypiCacheManager import LocalPyPIController
 
+
 class Add:
     @staticmethod
     def init_subparser(parser: argparse.ArgumentParser):
@@ -11,7 +12,7 @@ class Add:
     @staticmethod
     def run(args: argparse.Namespace):
         controllerInstance = LocalPyPIController()
-        
+
         controllerInstance.parseScriptArguments(args)
         needToDownloadFiles: bool = controllerInstance.initLocalRepo()
         if needToDownloadFiles:
