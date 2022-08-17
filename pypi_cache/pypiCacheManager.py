@@ -245,8 +245,6 @@ class LocalPyPIController:
 
     def isAlreadyAdded(self) -> bool:
         """Returns whether the self._packageName already exists in the self._pypiLocalPath."""
-
-        
         return False
 
     def synchronizeWithRemote(self) -> str:

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from pypi_cache.pypiCacheManager import LocalPyPIController
 
+
 class Update:
     @staticmethod
     def init_subparser(parser: argparse.ArgumentParser):
