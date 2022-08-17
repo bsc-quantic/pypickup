@@ -240,3 +240,15 @@ class LocalPyPIController:
             request.urlretrieve(fileLink, self.pypiLocalPath + "/" + self.packageName + "/" + fileName)
 
             packageCounter = packageCounter + 1
+
+    ### 'Update' command methods ###
+
+    def isAlreadyAdded(self) -> bool:
+        """Returns whether the self._packageName already exists in the self._pypiLocalPath."""
+
+        
+        return False
+
+    def synchronizeWithRemote(self) -> str:
+        """Synchronize the self._packageName against the PyPI remote repository. It adds the new available packages to the packageName/index.html and download them. Assumes the folders exists."""
+        return None
