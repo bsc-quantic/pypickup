@@ -126,7 +126,7 @@ class HTMLManager:
         return self.__prettifyHTML(outputSoup)
 
     def getHRefsList(self, pypiPackageHTML: str) -> dict:
-        """Returns a list of the href attributes appearing in 'pypiPackageHTML'."""
+        """Returns a dict of the href attributes appearing in 'pypiPackageHTML', the package's name in the key."""
 
         soup = BeautifulSoup(pypiPackageHTML, "html.parser")
 
@@ -245,7 +245,14 @@ class LocalPyPIController:
 
     def isAlreadyAdded(self) -> bool:
         """Returns whether the self._packageName already exists in the self._pypiLocalPath."""
-        return False
+
+        indexHTMLFile = open(self.pypiLocalPath + "/" + self._baseHTMLFileName, "r")
+        baseHTMLStr: str = indexHTMLFile.read()
+
+        packagesDict: dict = self._htmlManager.getHRefsList(baseHTMLStr)
+
+        if self.packageName in packagesDict: return True
+        else: return False
 
     def synchronizeWithRemote(self) -> str:
         """Synchronize the self._packageName against the PyPI remote repository. It adds the new available packages to the packageName/index.html and download them. Assumes the folders exists."""
