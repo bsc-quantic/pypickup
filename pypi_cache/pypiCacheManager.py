@@ -1,14 +1,17 @@
 #! /usr/bin/python
+from io import TextIOWrapper
 import os
 
 import argparse
+from site import addpackage
+from unittest import registerResult, result
 from urllib import request
 import re
 
 from bs4 import BeautifulSoup
 import wheel_filename
 
-from typing import Tuple
+from typing import Tuple, Dict
 
 
 class HTMLManager:
@@ -58,6 +61,7 @@ class HTMLManager:
 
         return resultingHTML
 
+    # ToDo: get these 2 following methods like one
     def insertPackageEntry(self, htmlString: str, pypiLocalPath: str, packageName: str) -> Tuple[bool, str]:
         """Appends a new element <a> into the 'htmlString' body whose href attribute is the 'packageName'. Returns whether the entry already exists in the htmlString."""
 
@@ -72,7 +76,27 @@ class HTMLManager:
 
         return False, self.__prettifyHTML(soup)
 
-    def __isValidWheel(self, entry: str) -> bool:
+    def insertPackageEntry_generic(self, htmlString: str, hrefURL: str, newEntryText: str) -> Tuple[bool, str]:
+        """Appends a new element <a> into the 'htmlString' body, with the 'hrefURL' and the 'newEntryText' parameters. Returns whether the entry already exists in the htmlString, and the updated htmlString."""
+
+        soup = BeautifulSoup(htmlString, "html.parser")
+
+        if soup.find("a", string=newEntryText):
+            return True, ""
+
+        newEntry = soup.new_tag("a", href=hrefURL)
+        newEntry.string = newEntryText
+        soup.html.body.append(newEntry)
+
+        return False, self.__prettifyHTML(soup)
+
+    def __getWheelsSetOfRules(self) -> Dict[str, list]:
+
+        # ToDo: get the set of rules for the wheels filtering from the settings¿? maybe the settings has been already read at the beginning of the execution.
+
+        return None
+
+    def __isValidWheel(self, entry: str, whlRules: dict) -> bool:
         try:
             parsedWheel = wheel_filename.parse_wheel_filename(entry)
 
@@ -90,21 +114,23 @@ class HTMLManager:
                 aEntriesOutput.append(aEntry)
 
     def filterInHTML(self, htmlContent: str, regexZIPAndTars: str, packageName: str) -> str:
-        """Keeps <a> entries in 'htmlContent' that are .whl or zip (or tar.gz, in case it doesn't exists a homonym .zip). The ones that do not match any are filtered out."""
+        """Keeps <a> entries in 'htmlContent' that are .whl or zip (or tar.gz, in case it doesn't exists a homonym .zip). The wheel must follow a particular set of rules. The ones that do not match any are filtered out."""
+
+        whlRules: Dict[str, list] = self.__getWheelsSetOfRules()
 
         outputSoup = BeautifulSoup(self._baseHTML_fromScratch, "html.parser")
         headEntry = outputSoup.new_tag("h1")
         headEntry.string = "Links for " + packageName
         outputSoup.html.body.append(headEntry)
 
-        zipAndTarsDict: dict[str, str] = dict()
+        zipAndTarsDict: Dict[str, str] = dict()
 
         originalSoup = BeautifulSoup(htmlContent, "html.parser")
         aEntries: list = originalSoup.find_all("a")
 
         aEntriesOutput: list = list()
         for aEntry in aEntries:
-            if self.__isValidWheel(aEntry.string):
+            if self.__isValidWheel(aEntry.string, whlRules):
                 aEntriesOutput.append(aEntry)
             else:
                 reSult = re.match(regexZIPAndTars, aEntry.string)
@@ -130,7 +156,7 @@ class HTMLManager:
 
         soup = BeautifulSoup(pypiPackageHTML, "html.parser")
 
-        resultingDict: dict = {}
+        resultingDict: dict = dict()
         for a in soup.find_all("a", href=True):
             resultingDict[a.string] = a["href"]
 
@@ -153,6 +179,8 @@ class LocalPyPIController:
         self._packageName: str
         self._pypiLocalPath: str
 
+        self._packageLocalFileName: str
+
         self._regexZIPAndTars: str
 
     @property
@@ -163,6 +191,10 @@ class LocalPyPIController:
     def pypiLocalPath(self):
         return self._pypiLocalPath
 
+    @property
+    def packageLocalFileName(self):
+        return self._packageLocalFileName
+
     @packageName.setter
     def packageName(self, new_PackageName: str):
         self._packageName = new_PackageName
@@ -171,12 +203,27 @@ class LocalPyPIController:
     def pypiLocalPath(self, new_PyPiLocalPath: str):
         self._pypiLocalPath = new_PyPiLocalPath
 
+    @packageLocalFileName.setter
+    def packageLocalFileName(self, new_PackageLocalFileName: str):
+        self._packageLocalFileName = new_PackageLocalFileName
+
+    ### Common methods ###
+    
+    def __writeFileFromTheStart(self, file: TextIOWrapper, textToWrite: str):
+        file.seek(0)
+        file.truncate(0)
+        file.write(textToWrite)
+
+    ### 'Add' command methods ###
+
     def __initRegexs(self):
         self._regexZIPAndTars = "^(" + self.packageName + ".*)\.(zip|tar.gz)$"
 
     def parseScriptArguments(self, args: argparse.ArgumentParser):
         self.packageName = args.packageName
         self.pypiLocalPath = args.pypiLocalPath
+
+        self.packageLocalFileName = (self.pypiLocalPath + "/" + self.packageName + "/").replace("\\", "/")
 
         self.__initRegexs()
 
@@ -251,9 +298,75 @@ class LocalPyPIController:
 
         packagesDict: dict = self._htmlManager.getHRefsList(baseHTMLStr)
 
-        if self.packageName in packagesDict: return True
-        else: return False
+        if self.packageName in packagesDict:
+            return True
+        else:
+            return False
+
+    def __checkPackagesInLocalButNotInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> str:
+        additionalPackagesMessage: str = ""
+        for localPackageName, localPackageURL in localIndexHRefs.items():
+            if not localPackageName in remoteIndexHRefs.items():
+                if additionalPackagesMessage == "":
+                    additionalPackagesMessage += "Packages in the local but not in the remote (check filter settings):\n"
+                additionalPackagesMessage += localPackageName + "\n"
+        
+        return additionalPackagesMessage
+
+    def __getNewPackagesInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> Tuple[dict, str]:
+        resultingDict: dict = dict()
+        additionalPackagesMessage: str = ""
+
+        for remotePackageName, remotePackageURL in remoteIndexHRefs.items():
+            if not remotePackageName in localIndexHRefs:
+                resultingDict[remotePackageName] = remotePackageURL
+
+        additionalPackagesMessage += self.__checkPackagesInLocalButNotInRemote(remoteIndexHRefs, localIndexHRefs)
+
+        return resultingDict, additionalPackagesMessage
+
+    # ToDo: Use this method to refactor the add command
+    def __downloadFilesInLocalPath(self, packagesToDownload: dict, indexHTML: str, addPackageFilesToIndex: bool) -> Tuple[str, str]:
+        resultingMessage: str = ""
+        updatedHTML: str = indexHTML
+
+        packageCounter: int = 1
+        for fileName, fileLink in packagesToDownload.items():
+            resultingMessage += "Downloading package #" + str(packageCounter) + ": '" + fileName + "'...\n"
+            request.urlretrieve(fileLink, self.packageLocalFileName + fileName)
+
+            if addPackageFilesToIndex: 
+                _, updatedHTML = self._htmlManager.insertPackageEntry_generic(updatedHTML, fileLink, fileName)
+
+            packageCounter = packageCounter + 1
+
+        return resultingMessage, updatedHTML
+
+    def __overwritePackageIndexFile(self, textToWrite: str):
+        with open(self.packageLocalFileName + self._packageHTMLFileName, "r+") as pypiLocalIndexFile:
+            self.__writeFileFromTheStart(pypiLocalIndexFile, textToWrite)
 
     def synchronizeWithRemote(self) -> str:
-        """Synchronize the self._packageName against the PyPI remote repository. It adds the new available packages to the packageName/index.html and download them. Assumes the folders exists."""
-        return None
+        """Synchronize the self.packageName against the PyPI remote repository. It adds the new available packages to the packageName/index.html and download them. Assumes the folders exists."""
+
+        pypiRemoteIndex: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
+        with open(self.packageLocalFileName + self._packageHTMLFileName, "r") as pypiLocalIndexFile:
+            pypiLocalIndex = pypiLocalIndexFile.read()
+
+        pypiRemoteIndexFiltered: str = self._htmlManager.filterInHTML(pypiRemoteIndex, self._regexZIPAndTars, self.packageName)
+
+        remoteIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiRemoteIndexFiltered)
+        localIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiLocalIndex)
+        newPackagesToDownload, warningMessage = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
+
+        resultingMessage: str = ""
+        if warningMessage != "": resultingMessage += "WARNING! " + warningMessage + "\n"
+
+        if len(newPackagesToDownload) == 0: resultingMessage += "No new packages in the remote to download."
+        else: resultingMessage += str(len(newPackagesToDownload)) + " new packages available.\n"
+
+        resultingMessage, pypiLocalIndexUpdated = self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, True)
+        
+        self.__overwritePackageIndexFile(pypiLocalIndexUpdated)
+        
+        return resultingMessage
