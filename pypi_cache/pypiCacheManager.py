@@ -61,22 +61,7 @@ class HTMLManager:
 
         return resultingHTML
 
-    # ToDo: get these 2 following methods like one
-    def insertPackageEntry(self, htmlString: str, pypiLocalPath: str, packageName: str) -> Tuple[bool, str]:
-        """Appends a new element <a> into the 'htmlString' body whose href attribute is the 'packageName'. Returns whether the entry already exists in the htmlString."""
-
-        soup = BeautifulSoup(htmlString, "html.parser")
-
-        if soup.find("a", string=packageName):
-            return True, ""
-
-        newEntry = soup.new_tag("a", href=pypiLocalPath + packageName + "/")
-        newEntry.string = packageName
-        soup.html.body.append(newEntry)
-
-        return False, self.__prettifyHTML(soup)
-
-    def insertPackageEntry_generic(self, htmlString: str, hrefURL: str, newEntryText: str) -> Tuple[bool, str]:
+    def insertPackageEntry(self, htmlString: str, hrefURL: str, newEntryText: str) -> Tuple[bool, str]:
         """Appends a new element <a> into the 'htmlString' body, with the 'hrefURL' and the 'newEntryText' parameters. Returns whether the entry already exists in the htmlString, and the updated htmlString."""
 
         soup = BeautifulSoup(htmlString, "html.parser")
@@ -242,7 +227,7 @@ class LocalPyPIController:
         if len(htmlContent) == 0:
             htmlContent = self._htmlManager.getBaseHTML()
 
-        entryAlreadyExists, htmlUpdated = self._htmlManager.insertPackageEntry(htmlContent, self.pypiLocalPath, self.packageName)
+        entryAlreadyExists, htmlUpdated = self._htmlManager.insertPackageEntry(htmlContent, self.pypiLocalPath + self.packageName + "/", self.packageName)
 
         needToDownloadFiles: bool = False
         if not entryAlreadyExists:
@@ -284,6 +269,7 @@ class LocalPyPIController:
         packageCounter: int = 1
         for fileName, fileLink in linksToDownload.items():
             print("Downloading package #" + str(packageCounter) + ": '" + fileName + "'...", flush=True)
+            # ToDo: implement a retry/resume feature in case the .urlretrieve fails
             request.urlretrieve(fileLink, self.pypiLocalPath + "/" + self.packageName + "/" + fileName)
 
             packageCounter = packageCounter + 1
@@ -333,10 +319,11 @@ class LocalPyPIController:
         packageCounter: int = 1
         for fileName, fileLink in packagesToDownload.items():
             resultingMessage += "Downloading package #" + str(packageCounter) + ": '" + fileName + "'...\n"
+            # ToDo: implement a retry/resume feature in case the .urlretrieve fails
             request.urlretrieve(fileLink, self.packageLocalFileName + fileName)
 
             if addPackageFilesToIndex: 
-                _, updatedHTML = self._htmlManager.insertPackageEntry_generic(updatedHTML, fileLink, fileName)
+                _, updatedHTML = self._htmlManager.insertPackageEntry(updatedHTML, fileLink, fileName)
 
             packageCounter = packageCounter + 1
 
