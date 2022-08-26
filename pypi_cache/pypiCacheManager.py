@@ -61,7 +61,7 @@ class HTMLManager:
 
         return resultingHTML
 
-    def insertPackageEntry(self, htmlString: str, hrefURL: str, newEntryText: str) -> Tuple[bool, str]:
+    def insertAEntry(self, htmlString: str, hrefURL: str, newEntryText: str) -> Tuple[bool, str]:
         """Appends a new element <a> into the 'htmlString' body, with the 'hrefURL' and the 'newEntryText' parameters. Returns whether the entry already exists in the htmlString, and the updated htmlString."""
 
         soup = BeautifulSoup(htmlString, "html.parser")
@@ -227,7 +227,7 @@ class LocalPyPIController:
         if len(htmlContent) == 0:
             htmlContent = self._htmlManager.getBaseHTML()
 
-        entryAlreadyExists, htmlUpdated = self._htmlManager.insertPackageEntry(htmlContent, self.pypiLocalPath + self.packageName + "/", self.packageName)
+        entryAlreadyExists, htmlUpdated = self._htmlManager.insertAEntry(htmlContent, self.pypiLocalPath + self.packageName + "/", self.packageName)
 
         needToDownloadFiles: bool = False
         if not entryAlreadyExists:
@@ -323,7 +323,7 @@ class LocalPyPIController:
             request.urlretrieve(fileLink, self.packageLocalFileName + fileName)
 
             if addPackageFilesToIndex: 
-                _, updatedHTML = self._htmlManager.insertPackageEntry(updatedHTML, fileLink, fileName)
+                _, updatedHTML = self._htmlManager.insertAEntry(updatedHTML, fileLink, fileName)
 
             packageCounter = packageCounter + 1
 
