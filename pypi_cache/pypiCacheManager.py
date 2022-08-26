@@ -193,7 +193,7 @@ class LocalPyPIController:
         self._packageLocalFileName = new_PackageLocalFileName
 
     ### Common methods ###
-    
+
     def __writeFileFromTheStart(self, file: TextIOWrapper, textToWrite: str):
         file.seek(0)
         file.truncate(0)
@@ -296,7 +296,7 @@ class LocalPyPIController:
                 if additionalPackagesMessage == "":
                     additionalPackagesMessage += "Packages in the local but not in the remote (check filter settings):\n"
                 additionalPackagesMessage += localPackageName + "\n"
-        
+
         return additionalPackagesMessage
 
     def __getNewPackagesInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> Tuple[dict, str]:
@@ -322,7 +322,7 @@ class LocalPyPIController:
             # ToDo: implement a retry/resume feature in case the .urlretrieve fails
             request.urlretrieve(fileLink, self.packageLocalFileName + fileName)
 
-            if addPackageFilesToIndex: 
+            if addPackageFilesToIndex:
                 _, updatedHTML = self._htmlManager.insertAEntry(updatedHTML, fileLink, fileName)
 
             packageCounter = packageCounter + 1
@@ -347,13 +347,16 @@ class LocalPyPIController:
         newPackagesToDownload, warningMessage = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
 
         resultingMessage: str = ""
-        if warningMessage != "": resultingMessage += "WARNING! " + warningMessage + "\n"
+        if warningMessage != "":
+            resultingMessage += "WARNING! " + warningMessage + "\n"
 
-        if len(newPackagesToDownload) == 0: resultingMessage += "No new packages in the remote to download."
-        else: resultingMessage += str(len(newPackagesToDownload)) + " new packages available.\n"
+        if len(newPackagesToDownload) == 0:
+            resultingMessage += "No new packages in the remote to download."
+        else:
+            resultingMessage += str(len(newPackagesToDownload)) + " new packages available.\n"
 
         resultingMessage, pypiLocalIndexUpdated = self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, True)
-        
+
         self.__overwritePackageIndexFile(pypiLocalIndexUpdated)
-        
+
         return resultingMessage
