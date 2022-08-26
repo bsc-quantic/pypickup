@@ -29,4 +29,4 @@ This will create a folder in the default location (~/.pypi-cache/) in which all 
 pypi-cache update numpy
 ```
 
-This will download the new packages available in the remote, in case there is any. It'll do nothing otherwise.
+This will download the new packages available in the remote, in case there is any. It'll do nothing otherwise. It also updates the index.html of the indicated package with the new downloaded packages, as expected.
