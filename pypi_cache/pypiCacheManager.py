@@ -233,7 +233,7 @@ class LocalPyPIController:
 
         self.pypiLocalPath = self.pypiLocalPath.replace("\\", "/")
 
-        self.packageLocalFileName = self.pypiLocalPath + "/" + self.packageName + "/"
+        self.packageLocalFileName = os.path.join(self.pypiLocalPath, self.packageName) + "/"
 
         self.__initRegexs()
 
