@@ -13,12 +13,37 @@ import wheel_filename
 
 from typing import Tuple, Dict
 
+from pypi_cache.settings.wheelFilters import Config
+
+
+class WheelsManager:
+    """
+    A class to manage Python wheels.
+    """
+
+    def __init__(self):
+        self._wheelsConfig = Config()
+
+    def isValidWheel(self, wheelName: str) -> bool:
+        """Checks out whether the 'wheelName' is a valid wheel name according to the wheel-filename package (https://pypi.org/project/wheel-filename/) and the settings file in settings/wheelFilters.py."""
+
+        try:
+            parsedWheel = wheel_filename.parse_wheel_filename(wheelName)
+
+            # ToDo: build a command "config" to set a file with the key words that we will use to filter out a wheel by a certain field (using the ones at 'parsedWheel')
+
+            return True
+        except wheel_filename.InvalidFilenameError:
+            return False
+
 
 class HTMLManager:
 
     """
     A class used for builing and managing the HTML files needed for the PyPI local repository.
     """
+
+    _wheelsManager = WheelsManager()
 
     _baseHTML_fromScratch = """
         <!DOCTYPE html>
@@ -75,22 +100,6 @@ class HTMLManager:
 
         return False, self.__prettifyHTML(soup)
 
-    def __getWheelsSetOfRules(self) -> Dict[str, list]:
-
-        # ToDo: get the set of rules for the wheels filtering from the settings¿? maybe the settings has been already read at the beginning of the execution.
-
-        return None
-
-    def __isValidWheel(self, entry: str, whlRules: dict) -> bool:
-        try:
-            parsedWheel = wheel_filename.parse_wheel_filename(entry)
-
-            # ToDo: build a command "config" to set a file with the key words that we will use to filter out a wheel by a certain field (using the ones at 'parsedWheel')
-
-            return True
-        except wheel_filename.InvalidFilenameError:
-            return False
-
     def __addZipsOrTarsToEntries(self, zipAndTarsDict: dict, originalSoup: BeautifulSoup, aEntriesOutput: list):
         for name, ext in zipAndTarsDict.items():
 
@@ -100,8 +109,6 @@ class HTMLManager:
 
     def filterInHTML(self, htmlContent: str, regexZIPAndTars: str, packageName: str) -> str:
         """Keeps <a> entries in 'htmlContent' that are .whl or zip (or tar.gz, in case it doesn't exists a homonym .zip). The wheel must follow a particular set of rules. The ones that do not match any are filtered out."""
-
-        whlRules: Dict[str, list] = self.__getWheelsSetOfRules()
 
         outputSoup = BeautifulSoup(self._baseHTML_fromScratch, "html.parser")
         headEntry = outputSoup.new_tag("h1")
@@ -115,7 +122,8 @@ class HTMLManager:
 
         aEntriesOutput: list = list()
         for aEntry in aEntries:
-            if self.__isValidWheel(aEntry.string, whlRules):
+            if self._wheelsManager.isValidWheel(aEntry.string):
+                # if self.__isValidWheel(aEntry.string, whlRules):
                 aEntriesOutput.append(aEntry)
             else:
                 reSult = re.match(regexZIPAndTars, aEntry.string)
