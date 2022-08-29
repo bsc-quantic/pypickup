@@ -293,14 +293,8 @@ class LocalPyPIController:
 
         linksToDownload: dict = self._htmlManager.getHRefsList(pypiPackageHTML)
 
-        print("Downloading " + str(len(linksToDownload)) + " files:")
-        packageCounter: int = 1
-        for fileName, fileLink in linksToDownload.items():
-            print("Downloading package #" + str(packageCounter) + ": '" + fileName + "'...", flush=True)
-            # ToDo: implement a retry/resume feature in case the .urlretrieve fails
-            request.urlretrieve(fileLink, self.pypiLocalPath + "/" + self.packageName + "/" + fileName)
-
-            packageCounter = packageCounter + 1
+        resultingMessage: str = ""
+        resultingMessage, _ = self.__downloadFilesInLocalPath(linksToDownload, resultingMessage)
 
     ### 'Update' command methods ###
 
