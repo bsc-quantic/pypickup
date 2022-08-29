@@ -247,7 +247,7 @@ class LocalPyPIController:
         """Initializes the local repository creating the needed directories (if not exist) and updating accordingly the base HTML."""
 
         self.__createDirIfNeeded(self.pypiLocalPath)
-        self.__createDirIfNeeded(self.pypiLocalPath + "/" + self.packageName + "/")
+        self.__createDirIfNeeded(self.packageLocalFileName)
 
         baseHTMLFilePath: str = self.pypiLocalPath + "/" + self._baseHTMLFileName
         self.__createBaseHTMLFileIfNeeded(baseHTMLFilePath)
@@ -287,7 +287,7 @@ class LocalPyPIController:
         pypiPackageHTML: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
 
         pypiPackageHTML: str = self._htmlManager.filterInHTML(pypiPackageHTML, self._regexZIPAndTars, self.packageName)
-        packageHTML_file = open(self.pypiLocalPath + "/" + self.packageName + "/" + self._packageHTMLFileName, "w")
+        packageHTML_file = open(self.packageLocalFileName + self._packageHTMLFileName, "w")
         packageHTML_file.write(pypiPackageHTML)
         packageHTML_file.close()
 
