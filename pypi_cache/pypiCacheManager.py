@@ -281,7 +281,7 @@ class LocalPyPIController:
 
         return needToDownloadFiles
 
-    def addPackage(self):
+    def addPackage(self) -> str:
         """Downloads all the files for the required package 'packageName', i.e. all the .whl, the .zip and the .tar.gz if necessary."""
 
         pypiPackageHTML: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
@@ -295,6 +295,8 @@ class LocalPyPIController:
 
         resultingMessage: str = ""
         resultingMessage, _ = self.__downloadFilesInLocalPath(linksToDownload, resultingMessage)
+
+        return resultingMessage
 
     ### 'Update' command methods ###
 
