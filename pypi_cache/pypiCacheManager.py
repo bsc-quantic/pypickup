@@ -202,6 +202,11 @@ class LocalPyPIController:
     def __downloadFilesInLocalPath(self, packagesToDownload: dict, outputMessage: str, indexHTML: str = "", addPackageFilesToIndex: bool = False) -> Tuple[str, str]:
         updatedHTML: str = indexHTML
 
+        if len(packagesToDownload) == 0:
+            outputMessage += "No new packages in the remote to download."
+        else:
+            outputMessage += str(len(packagesToDownload)) + " new packages available.\n"
+
         packageCounter: int = 1
         for fileName, fileLink in packagesToDownload.items():
             outputMessage += "Downloading package #" + str(packageCounter) + ": '" + fileName + "'...\n"
@@ -353,11 +358,6 @@ class LocalPyPIController:
         resultingMessage: str = ""
         if warningMessage != "":
             resultingMessage += "WARNING! " + warningMessage + "\n"
-
-        if len(newPackagesToDownload) == 0:
-            resultingMessage += "No new packages in the remote to download."
-        else:
-            resultingMessage += str(len(newPackagesToDownload)) + " new packages available.\n"
 
         resultingMessage, pypiLocalIndexUpdated = self.__downloadFilesInLocalPath(newPackagesToDownload, resultingMessage, pypiLocalIndex, True)
 
