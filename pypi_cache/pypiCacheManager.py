@@ -231,7 +231,9 @@ class LocalPyPIController:
         self.packageName = args.packageName
         self.pypiLocalPath = args.pypiLocalPath
 
-        self.packageLocalFileName = (self.pypiLocalPath + "/" + self.packageName + "/").replace("\\", "/")
+        self.pypiLocalPath = self.pypiLocalPath.replace("\\", "/")
+
+        self.packageLocalFileName = self.pypiLocalPath + "/" + self.packageName + "/"
 
         self.__initRegexs()
 
@@ -259,7 +261,7 @@ class LocalPyPIController:
         if len(htmlContent) == 0:
             htmlContent = self._htmlManager.getBaseHTML()
 
-        entryAlreadyExists, htmlUpdated = self._htmlManager.insertAEntry(htmlContent, self.pypiLocalPath + self.packageName + "/", self.packageName)
+        entryAlreadyExists, htmlUpdated = self._htmlManager.insertAEntry(htmlContent, self.packageLocalFileName, self.packageName)
 
         needToDownloadFiles: bool = False
         if not entryAlreadyExists:
