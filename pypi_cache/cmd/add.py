@@ -15,8 +15,10 @@ class Add:
         controllerInstance = LocalPyPIController()
 
         controllerInstance.parseScriptArguments(args)
-        needToDownloadFiles: bool = controllerInstance.initLocalRepo()
-        if needToDownloadFiles:
-            controllerInstance.downloadFiles()
+        controllerInstance.initLocalRepo()
+
+        needToAddPackage: bool = controllerInstance.canAddNewPackage()
+        if needToAddPackage:
+            controllerInstance.addPackage()
         else:
             print("Package " + controllerInstance.packageName + " has been already added to the local repository. Try to run the 'update' command instead to synchronize changes with the remote PyPI.")

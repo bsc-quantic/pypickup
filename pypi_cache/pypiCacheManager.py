@@ -199,12 +199,30 @@ class LocalPyPIController:
         file.truncate(0)
         file.write(textToWrite)
 
+    def __downloadFilesInLocalPath(self, packagesToDownload: dict, outputMessage: str, indexHTML: str = "", addPackageFilesToIndex: bool = False) -> Tuple[str, str]:
+        updatedHTML: str = indexHTML
+
+        packageCounter: int = 1
+        for fileName, fileLink in packagesToDownload.items():
+            outputMessage += "Downloading package #" + str(packageCounter) + ": '" + fileName + "'...\n"
+            # ToDo: implement a retry/resume feature in case the .urlretrieve fails
+            request.urlretrieve(fileLink, self.packageLocalFileName + fileName)
+
+            if addPackageFilesToIndex:
+                _, updatedHTML = self._htmlManager.insertAEntry(updatedHTML, fileLink, fileName)
+
+            packageCounter = packageCounter + 1
+
+        return outputMessage, updatedHTML
+
     ### 'Add' command methods ###
 
     def __initRegexs(self):
         self._regexZIPAndTars = "^(" + self.packageName + ".*)\.(zip|tar.gz)$"
 
     def parseScriptArguments(self, args: argparse.ArgumentParser):
+        """Parse the incoming arguments. A packageName and and pypiLocalPath are expected. Besides, it initializes derived class attributes."""
+
         self.packageName = args.packageName
         self.pypiLocalPath = args.pypiLocalPath
 
@@ -219,6 +237,15 @@ class LocalPyPIController:
     def __createBaseHTMLFileIfNeeded(self, baseHTMLFilePath: str):
         if not os.path.exists(baseHTMLFilePath):
             open(baseHTMLFilePath, "a").close()
+
+    def initLocalRepo(self):
+        """Initializes the local repository creating the needed directories (if not exist) and updating accordingly the base HTML."""
+
+        self.__createDirIfNeeded(self.pypiLocalPath)
+        self.__createDirIfNeeded(self.pypiLocalPath + "/" + self.packageName + "/")
+
+        baseHTMLFilePath: str = self.pypiLocalPath + "/" + self._baseHTMLFileName
+        self.__createBaseHTMLFileIfNeeded(baseHTMLFilePath)
 
     def __addEntryToBaseHTMLFile(self, baseHTMLFilePath: str) -> bool:
         baseHTML_file = open(baseHTMLFilePath, "r+")
@@ -241,19 +268,15 @@ class LocalPyPIController:
 
         return needToDownloadFiles
 
-    def initLocalRepo(self) -> bool:
-        """Initializes the local repository creating the needed directories (if not exist) and updating accordinly the base HTML. Returns whether the self.packageName packages need to be downloaded or not (because it already exists in the corresponding directory)."""
-
-        self.__createDirIfNeeded(self.pypiLocalPath)
-        self.__createDirIfNeeded(self.pypiLocalPath + "/" + self.packageName + "/")
+    def canAddNewPackage(self) -> bool:
+        """Adds the self.packageName package to the base HTML index, if not exists already. If it does, it returns False, True otherwise. """
 
         baseHTMLFilePath: str = self.pypiLocalPath + "/" + self._baseHTMLFileName
-        self.__createBaseHTMLFileIfNeeded(baseHTMLFilePath)
         needToDownloadFiles: bool = self.__addEntryToBaseHTMLFile(baseHTMLFilePath)
-
+        
         return needToDownloadFiles
 
-    def downloadFiles(self):
+    def addPackage(self):
         """Downloads all the files for the required package 'packageName', i.e. all the .whl, the .zip and the .tar.gz if necessary."""
 
         pypiPackageHTML: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
@@ -309,23 +332,6 @@ class LocalPyPIController:
         additionalPackagesMessage: str = self.__checkPackagesInLocalButNotInRemote(remoteIndexHRefs, localIndexHRefs)
 
         return resultingDict, additionalPackagesMessage
-
-    # ToDo: Use this method to refactor the add command
-    def __downloadFilesInLocalPath(self, packagesToDownload: dict, outputMessage: str, indexHTML: str = "", addPackageFilesToIndex: bool = False) -> Tuple[str, str]:
-        updatedHTML: str = indexHTML
-
-        packageCounter: int = 1
-        for fileName, fileLink in packagesToDownload.items():
-            outputMessage += "Downloading package #" + str(packageCounter) + ": '" + fileName + "'...\n"
-            # ToDo: implement a retry/resume feature in case the .urlretrieve fails
-            request.urlretrieve(fileLink, self.packageLocalFileName + fileName)
-
-            if addPackageFilesToIndex:
-                _, updatedHTML = self._htmlManager.insertAEntry(updatedHTML, fileLink, fileName)
-
-            packageCounter = packageCounter + 1
-
-        return outputMessage, updatedHTML
 
     def __overwritePackageIndexFile(self, textToWrite: str):
         with open(self.packageLocalFileName + self._packageHTMLFileName, "r+") as pypiLocalIndexFile:
