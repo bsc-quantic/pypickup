@@ -292,7 +292,7 @@ class LocalPyPIController:
     def __checkPackagesInLocalButNotInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> str:
         additionalPackagesMessage: str = ""
         for localPackageName, localPackageURL in localIndexHRefs.items():
-            if not localPackageName in remoteIndexHRefs.items():
+            if not localPackageName in remoteIndexHRefs:
                 if additionalPackagesMessage == "":
                     additionalPackagesMessage += "Packages in the local but not in the remote (check filter settings):\n"
                 additionalPackagesMessage += localPackageName + "\n"
@@ -301,24 +301,22 @@ class LocalPyPIController:
 
     def __getNewPackagesInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> Tuple[dict, str]:
         resultingDict: dict = dict()
-        additionalPackagesMessage: str = ""
 
         for remotePackageName, remotePackageURL in remoteIndexHRefs.items():
             if not remotePackageName in localIndexHRefs:
                 resultingDict[remotePackageName] = remotePackageURL
 
-        additionalPackagesMessage += self.__checkPackagesInLocalButNotInRemote(remoteIndexHRefs, localIndexHRefs)
+        additionalPackagesMessage: str = self.__checkPackagesInLocalButNotInRemote(remoteIndexHRefs, localIndexHRefs)
 
         return resultingDict, additionalPackagesMessage
 
     # ToDo: Use this method to refactor the add command
-    def __downloadFilesInLocalPath(self, packagesToDownload: dict, indexHTML: str, addPackageFilesToIndex: bool) -> Tuple[str, str]:
-        resultingMessage: str = ""
+    def __downloadFilesInLocalPath(self, packagesToDownload: dict, outputMessage: str, indexHTML: str = "", addPackageFilesToIndex: bool = False) -> Tuple[str, str]:
         updatedHTML: str = indexHTML
 
         packageCounter: int = 1
         for fileName, fileLink in packagesToDownload.items():
-            resultingMessage += "Downloading package #" + str(packageCounter) + ": '" + fileName + "'...\n"
+            outputMessage += "Downloading package #" + str(packageCounter) + ": '" + fileName + "'...\n"
             # ToDo: implement a retry/resume feature in case the .urlretrieve fails
             request.urlretrieve(fileLink, self.packageLocalFileName + fileName)
 
@@ -327,7 +325,7 @@ class LocalPyPIController:
 
             packageCounter = packageCounter + 1
 
-        return resultingMessage, updatedHTML
+        return outputMessage, updatedHTML
 
     def __overwritePackageIndexFile(self, textToWrite: str):
         with open(self.packageLocalFileName + self._packageHTMLFileName, "r+") as pypiLocalIndexFile:
@@ -355,7 +353,7 @@ class LocalPyPIController:
         else:
             resultingMessage += str(len(newPackagesToDownload)) + " new packages available.\n"
 
-        resultingMessage, pypiLocalIndexUpdated = self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, True)
+        resultingMessage, pypiLocalIndexUpdated = self.__downloadFilesInLocalPath(newPackagesToDownload, resultingMessage, pypiLocalIndex, True)
 
         self.__overwritePackageIndexFile(pypiLocalIndexUpdated)
 
