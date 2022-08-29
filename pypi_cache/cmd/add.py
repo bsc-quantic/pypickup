@@ -19,6 +19,7 @@ class Add:
 
         needToAddPackage: bool = controllerInstance.canAddNewPackage()
         if needToAddPackage:
-            controllerInstance.addPackage()
+            addMessage: str = controllerInstance.addPackage()
+            print(addMessage)
         else:
             print("Package " + controllerInstance.packageName + " has been already added to the local repository. Try to run the 'update' command instead to synchronize changes with the remote PyPI.")
