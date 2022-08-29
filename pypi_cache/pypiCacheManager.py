@@ -132,6 +132,7 @@ class HTMLManager:
         self.__addZipsOrTarsToEntries(zipAndTarsDict, originalSoup, aEntriesOutput)
 
         for aEntry in aEntriesOutput:
+            # ToDo: the href for the aEntry must be the URL or the local path to the wheel/zip file?
             outputSoup.html.body.append(aEntry)
 
         return self.__prettifyHTML(outputSoup)
