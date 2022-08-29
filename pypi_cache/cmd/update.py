@@ -17,7 +17,7 @@ class Update:
         controllerInstance.parseScriptArguments(args)
         canSynchronize: bool = controllerInstance.isAlreadyAdded()
         if canSynchronize:
-            syncMessage = controllerInstance.synchronizeWithRemote()
+            syncMessage: str = controllerInstance.synchronizeWithRemote()
             print(syncMessage)
         else:
             print("Package " + controllerInstance.packageName + " has not been added to the local repository yet. Run the 'add' command first.")

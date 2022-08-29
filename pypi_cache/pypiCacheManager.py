@@ -274,11 +274,11 @@ class LocalPyPIController:
         return needToDownloadFiles
 
     def canAddNewPackage(self) -> bool:
-        """Adds the self.packageName package to the base HTML index, if not exists already. If it does, it returns False, True otherwise. """
+        """Adds the self.packageName package to the base HTML index, if not exists already. If it does, it returns False, True otherwise."""
 
         baseHTMLFilePath: str = self.pypiLocalPath + "/" + self._baseHTMLFileName
         needToDownloadFiles: bool = self.__addEntryToBaseHTMLFile(baseHTMLFilePath)
-        
+
         return needToDownloadFiles
 
     def addPackage(self):
