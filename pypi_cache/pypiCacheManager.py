@@ -24,15 +24,36 @@ class WheelsManager:
     def __init__(self):
         self._wheelsConfig = Config()
 
+    @property
+    def wheelsConfig(self):
+        return self._wheelsConfig
+
+    @wheelsConfig.setter
+    def packageName(self, new_wheelsConfig: str):
+        self._wheelsConfig = new_wheelsConfig
+
+    def __needToBeIncluded(self, parsedWheel: wheel_filename.ParsedWheelFilename) -> bool:
+        if self.wheelsConfig.inOrOut == "in":
+            pass
+
+        elif self.wheelsConfig.inOrOut == "out":
+            pass
+
+        else:
+            raise ValueError("WheelsManager::__needToBeIncluded - Config.inOrOut not correct! Set 'in' or 'out' in settings/wheelFilters.py")
+
+        return False
+
     def isValidWheel(self, wheelName: str) -> bool:
         """Checks out whether the 'wheelName' is a valid wheel name according to the wheel-filename package (https://pypi.org/project/wheel-filename/) and the settings file in settings/wheelFilters.py."""
 
         try:
             parsedWheel = wheel_filename.parse_wheel_filename(wheelName)
 
-            # ToDo: build a command "config" to set a file with the key words that we will use to filter out a wheel by a certain field (using the ones at 'parsedWheel')
+            if self.__needToBeIncluded(parsedWheel):
+                return True
 
-            return True
+            return False
         except wheel_filename.InvalidFilenameError:
             return False
 
@@ -123,7 +144,6 @@ class HTMLManager:
         aEntriesOutput: list = list()
         for aEntry in aEntries:
             if self._wheelsManager.isValidWheel(aEntry.string):
-                # if self.__isValidWheel(aEntry.string, whlRules):
                 aEntriesOutput.append(aEntry)
             else:
                 reSult = re.match(regexZIPAndTars, aEntry.string)
