@@ -1,13 +1,13 @@
-inOrOut = "out"
+inOrOut_wheels = "out"
 
-inFilters = {
+inFilters_wheels = {
     "version": [],
     "python_tags": [">=3.5"],
     "abi_tags": ["~cp36", "~cp37"],
     "platform_tags": ["~manylinux", "~win32", "~amd64"]
 }
 
-outFilters = {
+outFilters_wheels = {
     "version": ["~rc"],
     "python_tags": ["~pp", "~cp2", "<3.5"],
     "abi_tags": ["~mu"],
@@ -15,7 +15,7 @@ outFilters = {
 }
 
 
-class Config:
+class WheelsConfig:
 
     """
     A class to save the configuration for the pypiCache commands.
@@ -34,9 +34,9 @@ class Config:
     _incorrectInOrOutMessage: str = "Incorrect settings field 'inOrOut'! Set 'in' or 'out' in settings/wheelFilters.py."
 
     def __init__(self):
-        self._inOrOut: str = inOrOut
-        self._inFilters: dict = inFilters
-        self._outFilters: dict = outFilters
+        self._inOrOut: str = inOrOut_wheels
+        self._inFilters: dict[str, list[str]] = inFilters_wheels
+        self._outFilters: dict[str, list[str]] = outFilters_wheels
 
     @property
     def inOrOut(self):
@@ -50,7 +50,11 @@ class Config:
     def outFilters(self):
         return self._outFilters
 
-    def getFilterKeys(self) -> list:
+    @property
+    def incorrectInOrOutMessage(self):
+        return self._incorrectInOrOutMessage
+
+    def getFilterKeys(self) -> list[str]:
         if self.inOrOut == "in":
             return list(inFilters.keys())
         elif self.inOrOut == "out":
@@ -58,7 +62,7 @@ class Config:
         else:
             raise ValueError("Config::getFilterKeys() - " + self._incorrectInOrOutMessage)
 
-    def getField(self, fieldName: str) -> list:
+    def getField(self, fieldName: str) -> list[str]:
         if self.inOrOut == "in":
             if fieldName not in self.inFilters:
                 raise ValueError("Config::getField() - Field name not available in inFilters settings!")

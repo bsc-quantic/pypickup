@@ -10,10 +10,11 @@ import re
 
 from bs4 import BeautifulSoup
 import wheel_filename
+import multimethod
 
 from typing import Tuple, Dict
 
-from pypi_cache.settings.wheelFilters import Config
+from pypi_cache.settings.wheelFilters import WheelsConfig
 
 
 class WheelsManager:
@@ -22,7 +23,7 @@ class WheelsManager:
     """
 
     def __init__(self):
-        self._wheelsConfig = Config()
+        self._wheelsConfig = WheelsConfig()
 
     @property
     def wheelsConfig(self):
@@ -32,17 +33,40 @@ class WheelsManager:
     def packageName(self, new_wheelsConfig: str):
         self._wheelsConfig = new_wheelsConfig
 
-    def __needToBeIncluded(self, parsedWheel: wheel_filename.ParsedWheelFilename) -> bool:
-        if self.wheelsConfig.inOrOut == "in":
-            pass
-
-        elif self.wheelsConfig.inOrOut == "out":
-            pass
-
-        else:
-            raise ValueError("WheelsManager::__needToBeIncluded - Config.inOrOut not correct! Set 'in' or 'out' in settings/wheelFilters.py")
+    @multimethod(str, str)
+    def __fulfillFilterCriteria(self, wheelAttribute: str, filter: str) -> bool:
 
         return False
+
+    @multimethod(list[str], str)
+    def __fulfillFilterCriteria(self, wheelAttribute: list[str], filter: str) -> bool:
+
+        return False
+
+    def __getDefaultBehaviourForIncludingWheels(self):
+        if self.wheelsConfig.inOrOut == "in":
+            return False
+        elif self.wheelsConfig.inOrOut == "out":
+            return True
+        else:
+            raise ValueError("WheelsManager::__getDefaultBehaviourForIncludingWheels - " + self.wheelsConfig.incorrectInOrOutMessage)
+
+    def __needToBeIncluded(self, parsedWheel: wheel_filename.ParsedWheelFilename) -> bool:
+        filterKeys: list[str] = self.wheelsConfig.getFilterKeys()
+        for filterKey in filterKeys:
+            wheelAttribute = getattr(parsedWheel, filterKey)
+            filtersForWheel: list[str] = self.wheelsConfig.getField(filterKey)
+
+            for filter in filtersForWheel:
+                if self.__fulfillFilterCriteria(wheelAttribute, filter):
+                    if self.wheelsConfig.inOrOut == "in":
+                        return True
+                    elif self.wheelsConfig.inOrOut == "out":
+                        return False
+                    else:
+                        raise ValueError("WheelsManager::__needToBeIncluded - " + self.wheelsConfig.incorrectInOrOutMessage)
+
+        return self.__getDefaultBehaviourForIncludingWheels()
 
     def isValidWheel(self, wheelName: str) -> bool:
         """Checks out whether the 'wheelName' is a valid wheel name according to the wheel-filename package (https://pypi.org/project/wheel-filename/) and the settings file in settings/wheelFilters.py."""
