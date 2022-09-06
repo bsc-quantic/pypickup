@@ -189,7 +189,7 @@ class HTMLManager:
 
         return self.__prettifyHTML(outputSoup)
 
-    def getHRefsList(self, pypiPackageHTML: str) -> dict:
+    def getHRefsList(self, pypiPackageHTML: str) -> Dict[str, str]:
         """Returns a dict of the href attributes appearing in 'pypiPackageHTML', the package's name in the key."""
 
         soup = BeautifulSoup(pypiPackageHTML, "html.parser")
@@ -252,7 +252,7 @@ class LocalPyPIController:
         file.truncate(0)
         file.write(textToWrite)
 
-    def __downloadFilesInLocalPath(self, packagesToDownload: dict, outputMessage: str, indexHTML: str = "", addPackageFilesToIndex: bool = False) -> Tuple[str, str]:
+    def __downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], outputMessage: str, indexHTML: str = "", addPackageFilesToIndex: bool = False) -> Tuple[str, str]:
         updatedHTML: str = indexHTML
 
         if len(packagesToDownload) == 0:
@@ -346,7 +346,7 @@ class LocalPyPIController:
         packageHTML_file.write(pypiPackageHTML)
         packageHTML_file.close()
 
-        linksToDownload: dict = self._htmlManager.getHRefsList(pypiPackageHTML)
+        linksToDownload: Dict[str, str] = self._htmlManager.getHRefsList(pypiPackageHTML)
 
         resultingMessage: str = ""
         resultingMessage, _ = self.__downloadFilesInLocalPath(linksToDownload, resultingMessage)
@@ -361,7 +361,7 @@ class LocalPyPIController:
         indexHTMLFile = open(self.pypiLocalPath + "/" + self._baseHTMLFileName, "r")
         baseHTMLStr: str = indexHTMLFile.read()
 
-        packagesDict: dict = self._htmlManager.getHRefsList(baseHTMLStr)
+        packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(baseHTMLStr)
 
         if self.packageName in packagesDict:
             return True
@@ -378,8 +378,8 @@ class LocalPyPIController:
 
         return additionalPackagesMessage
 
-    def __getNewPackagesInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> Tuple[dict, str]:
-        resultingDict: dict = dict()
+    def __getNewPackagesInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> Tuple[Dict[str, str], str]:
+        resultingDict: Dict[str, str] = dict()
 
         for remotePackageName, remotePackageURL in remoteIndexHRefs.items():
             if not remotePackageName in localIndexHRefs:
