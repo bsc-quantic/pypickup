@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 import wheel_filename
 from multimethod import multimethod
 
-from typing import Tuple, Dict, Sequence
+from typing import Tuple, Dict, List
 
 from pypi_cache.settings.wheelFilters import WheelsConfig
 
@@ -35,11 +35,11 @@ class WheelsManager:
 
     @multimethod
     def __fulfillFilterCriteria(self, wheelAttribute: str, filter: str) -> bool:
-        
+
         return False
 
-    @multimethod
-    def __fulfillFilterCriteria(self, wheelAttribute: Sequence[str], filter: str) -> bool:
+    @__fulfillFilterCriteria.register
+    def _(self, wheelAttribute: List[str], filter: str) -> bool:
 
         return False
 
