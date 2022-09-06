@@ -14,6 +14,7 @@ outFilters_wheels = {
     "platform_tags": ["~i686", "~win32"]
 }
 
+from typing import Dict, List
 
 class WheelsConfig:
 
@@ -35,8 +36,8 @@ class WheelsConfig:
 
     def __init__(self):
         self._inOrOut: str = inOrOut_wheels
-        self._inFilters: dict[str, list[str]] = inFilters_wheels
-        self._outFilters: dict[str, list[str]] = outFilters_wheels
+        self._inFilters: Dict[str, List[str]] = inFilters_wheels
+        self._outFilters: Dict[str, List[str]] = outFilters_wheels
 
     @property
     def inOrOut(self):
@@ -54,7 +55,7 @@ class WheelsConfig:
     def incorrectInOrOutMessage(self):
         return self._incorrectInOrOutMessage
 
-    def getFilterKeys(self) -> list[str]:
+    def getFilterKeys(self) -> List[str]:
         if self.inOrOut == "in":
             return list(self.inFilters.keys())
         elif self.inOrOut == "out":
@@ -62,7 +63,7 @@ class WheelsConfig:
         else:
             raise ValueError("Config::getFilterKeys() - " + self._incorrectInOrOutMessage)
 
-    def getField(self, fieldName: str) -> list[str]:
+    def getField(self, fieldName: str) -> List[str]:
         if self.inOrOut == "in":
             if fieldName not in self.inFilters:
                 raise ValueError("Config::getField() - Field name not available in inFilters settings!")
