@@ -252,17 +252,17 @@ class LocalPyPIController:
         file.truncate(0)
         file.write(textToWrite)
 
-    def __downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], outputMessage: str, indexHTML: str = "", addPackageFilesToIndex: bool = False) -> Tuple[str, str]:
+    def __downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str = "", addPackageFilesToIndex: bool = False) -> str:
         updatedHTML: str = indexHTML
 
         if len(packagesToDownload) == 0:
-            outputMessage += "No new packages in the remote to download."
+            print("No new packages in the remote to download.")
         else:
-            outputMessage += str(len(packagesToDownload)) + " new packages available.\n"
+            print(str(len(packagesToDownload)) + " new packages available.")
 
         packageCounter: int = 1
         for fileName, fileLink in packagesToDownload.items():
-            outputMessage += "Downloading package #" + str(packageCounter) + ": '" + fileName + "'...\n"
+            print("Downloading package #" + str(packageCounter) + ": '" + fileName + "'...")
             # ToDo: implement a retry/resume feature in case the .urlretrieve fails
             request.urlretrieve(fileLink, self.packageLocalFileName + fileName)
 
@@ -271,7 +271,7 @@ class LocalPyPIController:
 
             packageCounter = packageCounter + 1
 
-        return outputMessage, updatedHTML
+        return updatedHTML
 
     ### 'Add' command methods ###
 
@@ -336,7 +336,7 @@ class LocalPyPIController:
 
         return needToDownloadFiles
 
-    def addPackage(self) -> str:
+    def addPackage(self):
         """Downloads all the files for the required package 'packageName', i.e. all the .whl, the .zip and the .tar.gz if necessary."""
 
         pypiPackageHTML: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
@@ -348,10 +348,7 @@ class LocalPyPIController:
 
         linksToDownload: Dict[str, str] = self._htmlManager.getHRefsList(pypiPackageHTML)
 
-        resultingMessage: str = ""
-        resultingMessage, _ = self.__downloadFilesInLocalPath(linksToDownload, resultingMessage)
-
-        return resultingMessage
+        self.__downloadFilesInLocalPath(linksToDownload)
 
     ### 'Update' command methods ###
 
@@ -378,7 +375,7 @@ class LocalPyPIController:
 
         return additionalPackagesMessage
 
-    def __getNewPackagesInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> Tuple[Dict[str, str], str]:
+    def __getNewPackagesInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> Dict[str, str]:
         resultingDict: Dict[str, str] = dict()
 
         for remotePackageName, remotePackageURL in remoteIndexHRefs.items():
@@ -386,14 +383,16 @@ class LocalPyPIController:
                 resultingDict[remotePackageName] = remotePackageURL
 
         additionalPackagesMessage: str = self.__checkPackagesInLocalButNotInRemote(remoteIndexHRefs, localIndexHRefs)
+        if additionalPackagesMessage != "":
+            print("WARNING! " + additionalPackagesMessage)
 
-        return resultingDict, additionalPackagesMessage
+        return resultingDict
 
     def __overwritePackageIndexFile(self, textToWrite: str):
         with open(self.packageLocalFileName + self._packageHTMLFileName, "r+") as pypiLocalIndexFile:
             self.__writeFileFromTheStart(pypiLocalIndexFile, textToWrite)
 
-    def synchronizeWithRemote(self) -> str:
+    def synchronizeWithRemote(self):
         """Synchronize the self.packageName against the PyPI remote repository. It adds the new available packages to the packageName/index.html and download them. Assumes the folders exists."""
 
         pypiRemoteIndex: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
@@ -404,14 +403,8 @@ class LocalPyPIController:
 
         remoteIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiRemoteIndexFiltered)
         localIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiLocalIndex)
-        newPackagesToDownload, warningMessage = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
+        newPackagesToDownload = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
 
-        resultingMessage: str = ""
-        if warningMessage != "":
-            resultingMessage += "WARNING! " + warningMessage + "\n"
-
-        resultingMessage, pypiLocalIndexUpdated = self.__downloadFilesInLocalPath(newPackagesToDownload, resultingMessage, pypiLocalIndex, True)
+        pypiLocalIndexUpdated = self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, True)
 
         self.__overwritePackageIndexFile(pypiLocalIndexUpdated)
-
-        return resultingMessage
