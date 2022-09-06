@@ -8,7 +8,7 @@ from unittest import registerResult, result
 from urllib import request
 import re
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, element as bs4Element
 import wheel_filename
 from multimethod import multimethod
 
@@ -40,7 +40,7 @@ class WheelsManager:
 
     @__fulfillFilterCriteria.register
     def _(self, wheelAttribute: List[str], filter: str) -> bool:
-        
+
 
         return False
 
@@ -53,10 +53,10 @@ class WheelsManager:
             raise ValueError("WheelsManager::__getDefaultBehaviourForIncludingWheels - " + self.wheelsConfig.incorrectInOrOutMessage)
 
     def __needToBeIncluded(self, parsedWheel: wheel_filename.ParsedWheelFilename) -> bool:
-        filterKeys: list[str] = self.wheelsConfig.getFilterKeys()
+        filterKeys: List[str] = self.wheelsConfig.getFilterKeys()
         for filterKey in filterKeys:
             wheelAttribute = getattr(parsedWheel, filterKey)
-            filtersForWheel: list[str] = self.wheelsConfig.getField(filterKey)
+            filtersForWheel: List[str] = self.wheelsConfig.getField(filterKey)
 
             for filter in filtersForWheel:
                 if self.__fulfillFilterCriteria(wheelAttribute, filter):
@@ -146,7 +146,7 @@ class HTMLManager:
 
         return False, self.__prettifyHTML(soup)
 
-    def __addZipsOrTarsToEntries(self, zipAndTarsDict: dict, originalSoup: BeautifulSoup, aEntriesOutput: list):
+    def __addZipsOrTarsToEntries(self, zipAndTarsDict: Dict[str, str], originalSoup: BeautifulSoup, aEntriesOutput: List[bs4Element.Tag]):
         for name, ext in zipAndTarsDict.items():
 
             aEntry: str = originalSoup.find("a", string=name + "." + ext)
@@ -164,9 +164,9 @@ class HTMLManager:
         zipAndTarsDict: Dict[str, str] = dict()
 
         originalSoup = BeautifulSoup(htmlContent, "html.parser")
-        aEntries: list = originalSoup.find_all("a")
+        aEntries: bs4Element.ResultSet[bs4Element.Tag] = originalSoup.find_all("a")
 
-        aEntriesOutput: list = list()
+        aEntriesOutput: List[bs4Element.Tag] = list()
         for aEntry in aEntries:
             if self._wheelsManager.isValidWheel(aEntry.string):
                 aEntriesOutput.append(aEntry)
@@ -195,9 +195,10 @@ class HTMLManager:
 
         soup = BeautifulSoup(pypiPackageHTML, "html.parser")
 
-        resultingDict: dict = dict()
+        resultingDict: Dict[str, str] = dict()
         for a in soup.find_all("a", href=True):
-            resultingDict[a.string] = a["href"]
+            print("adsfasdfsd: " + str(type(a.string)))
+            resultingDict[str(a.string)] = a["href"]
 
         return resultingDict
 
@@ -398,14 +399,14 @@ class LocalPyPIController:
 
         pypiRemoteIndex: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
         with open(self.packageLocalFileName + self._packageHTMLFileName, "r") as pypiLocalIndexFile:
-            pypiLocalIndex = pypiLocalIndexFile.read()
+            pypiLocalIndex: str = pypiLocalIndexFile.read()
 
         pypiRemoteIndexFiltered: str = self._htmlManager.filterInHTML(pypiRemoteIndex, self._regexZIPAndTars, self.packageName)
 
         remoteIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiRemoteIndexFiltered)
         localIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiLocalIndex)
-        newPackagesToDownload = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
+        newPackagesToDownload: Dict[str, str] = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
 
-        pypiLocalIndexUpdated = self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, True)
+        pypiLocalIndexUpdated: str = self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, True)
 
         self.__overwritePackageIndexFile(pypiLocalIndexUpdated)
