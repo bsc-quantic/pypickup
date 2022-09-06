@@ -1,3 +1,5 @@
+filtersEnabled_wheels = "yes"
+
 inOrOut_wheels = "out"
 
 inFilters_wheels = {
@@ -19,7 +21,7 @@ from typing import Dict, List
 class WheelsConfig:
 
     """
-    A class to save the configuration for the pypiCache commands.
+    A class to save the configuration for the PyPI-cache commands.
 
     The user can choose between filtering wheels in or out. If self.inOrOut == "in", the expected logic is that all packages will not be considere by
     default, only if they match with the specified expressions. If self.inOurOut == "out", then all the packages will be included by default and only
@@ -35,9 +37,16 @@ class WheelsConfig:
     _incorrectInOrOutMessage: str = "Incorrect settings field 'inOrOut'! Set 'in' or 'out' in settings/wheelFilters.py."
 
     def __init__(self):
+        self._filtersEnabled: str = filtersEnabled_wheels
+
         self._inOrOut: str = inOrOut_wheels
+
         self._inFilters: Dict[str, List[str]] = inFilters_wheels
         self._outFilters: Dict[str, List[str]] = outFilters_wheels
+
+    @property
+    def filtersEnabled(self):
+        return self._filtersEnabled
 
     @property
     def inOrOut(self):

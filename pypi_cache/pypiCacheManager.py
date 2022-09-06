@@ -1,5 +1,6 @@
 #! /usr/bin/python
 from io import TextIOWrapper
+from multiprocessing.sharedctypes import Value
 import os
 
 import argparse
@@ -22,8 +23,16 @@ class WheelsManager:
     A class to manage Python wheels.
     """
 
+    _aprox_char: str = "~"
+    _lt_char: str = "<"
+    _gt_char: str = ">"
+    _lte_char: str = "<="
+    _gte_char: str = ">="
+
     def __init__(self):
         self._wheelsConfig = WheelsConfig()
+
+        self.__checkFilters()
 
     @property
     def wheelsConfig(self):
@@ -33,14 +42,75 @@ class WheelsManager:
     def packageName(self, new_wheelsConfig: str):
         self._wheelsConfig = new_wheelsConfig
 
+    def __checkFilters(self):
+        # Check filters are in the proper format, raise Exception otherwise.
+
+        return None
+
+    def __getLiteralFilter(self, filter: str, filterName: str) -> str:
+        filterLiteral: str = filter.replace("~" , "")
+
+        if filterName == "python_tags":
+            filterLiteral = filterLiteral.replace(".", "")
+
+            filterLiteral = re.sub(rf"({self._lte_char}|{self._gte_char}|{self._gt_char}|{self._lt_char})", r"", filterLiteral)
+
+        return filterLiteral
+
+    def __getFilterVersion(self, filterLiteral: str) -> int:
+        resultingVersion: int
+        try:
+            resultingVersion = int(filterLiteral)
+        except ValueError:
+            return None
+
+        return resultingVersion
+
+    def __getWheelPythonVersion(self, pythonTag: str) -> int:
+        return int(re.sub(rf".*(\d*)", r"\1", pythonTag))
+
     @multimethod
-    def __fulfillFilterCriteria(self, wheelAttribute: str, filter: str) -> bool:
+    def __fulfillFilterCriteria(self, wheelAttribute: str, filter: str, filterName: str) -> bool:
+
+        # ToDo: move these lines to the self.__checkFilters, in order to do it just once, not every time we call this method.
+        lessOrGreaterReExp: str = "(" + self._lt_char + "|" + self._gt_char + ")"
+
+        if filterName != "python_tags" and re.search(lessOrGreaterReExp, filter):
+            raise ValueError("WheelsManager::__fulfillFilterCriteria - NOT SUPPORTED: inequality expression in settings wheel field " + filterName + ".")
+
+        # Check that for inequalities theres only a number (or a number with a point. if not -> raise exception)
+        # Check that if there's not an inequality, there's only the python version (no other weird characters)
+        
+
+
+        filterLiteral: str = self.__getLiteralFilter(filter, filterName)
+        if re.search(self._aprox_char, filter):
+            if filterLiteral in wheelAttribute:
+                return True
+        else:
+            if filterName == "python_tags":
+                
+                filter_pyVersion = self.__getFilterVersion(filterLiteral)
+                if filter_pyVersion:
+                    wheelAttribute_pyVersion: int = self.__getWheelPythonVersion(wheelAttribute)
+
+                    if re.search(self._lte_char, filter):
+                        if wheelAttribute_pyVersion <= filter_pyVersion:
+                            return True
+                    elif re.search(self._gte_char, filter):
+                        if wheelAttribute_pyVersion >= filter_pyVersion:
+                            return True
+                    elif re.search(self._lt_char, filter):
+                        if wheelAttribute_pyVersion < filter_pyVersion:
+                            return True
+                    elif re.search(self._gt_char, filter):
+                        if wheelAttribute_pyVersion > filter_pyVersion:
+                            return True
 
         return False
 
     @__fulfillFilterCriteria.register
-    def _(self, wheelAttribute: List[str], filter: str) -> bool:
-
+    def _(self, wheelAttribute: List[str], filter: str, filterName: str) -> bool:
 
         return False
 
@@ -59,7 +129,7 @@ class WheelsManager:
             filtersForWheel: List[str] = self.wheelsConfig.getField(filterKey)
 
             for filter in filtersForWheel:
-                if self.__fulfillFilterCriteria(wheelAttribute, filter):
+                if self.__fulfillFilterCriteria(wheelAttribute, filter, filterKey):
                     if self.wheelsConfig.inOrOut == "in":
                         return True
                     elif self.wheelsConfig.inOrOut == "out":
@@ -75,10 +145,17 @@ class WheelsManager:
         try:
             parsedWheel = wheel_filename.parse_wheel_filename(wheelName)
 
+            filtersEnabled: str = self._wheelsConfig.filtersEnabled
+            if filtersEnabled == "no":
+                return True
+            elif filtersEnabled != "yes":
+                raise ValueError("WheelsManager::isValidWheel - Incorrect value for 'filtersEnabled_wheels' field in settings/wheelFilters.py.")
+
             if self.__needToBeIncluded(parsedWheel):
                 return True
 
             return False
+
         except wheel_filename.InvalidFilenameError:
             return False
 
