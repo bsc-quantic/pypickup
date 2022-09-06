@@ -56,9 +56,9 @@ class WheelsConfig:
 
     def getFilterKeys(self) -> list[str]:
         if self.inOrOut == "in":
-            return list(inFilters.keys())
+            return list(self.inFilters.keys())
         elif self.inOrOut == "out":
-            return list(outFilters.keys())
+            return list(self.outFilters.keys())
         else:
             raise ValueError("Config::getFilterKeys() - " + self._incorrectInOrOutMessage)
 
