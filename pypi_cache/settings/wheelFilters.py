@@ -28,8 +28,10 @@ class WheelsConfig:
     those containing some of the specified expressions will be discarded.
 
     One can exactly match a expression (default behaviour), or either using the "~" or ">", "<", ">=", "<=" modifiers:
-        "~" can be used to indicate "it contains the following string".
-        ">", "<", ">=", "<=" can be used only in python_tags.
+        "~" can be used to indicate "it contains the following string", for every kind of filter.
+        ">", "<", ">=", "<=" can be used only in 'python_tags' filter. In this case, the format of the string can contain 1 '.' characters or more,
+            as well as the inequality characters themselves, but no other special characters. E.g. "cp<=3.2" wouldn't be correct. ">3" is translated
+            into ">3.0".
 
     If a list for a specific field is empty, then that field is not used to either filter in or out the wheels.
     """

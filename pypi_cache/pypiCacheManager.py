@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup, element as bs4Element
 import wheel_filename
 from multimethod import multimethod
 
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Union
 
 from pypi_cache.settings.wheelFilters import WheelsConfig
 
@@ -42,75 +42,93 @@ class WheelsManager:
     def packageName(self, new_wheelsConfig: str):
         self._wheelsConfig = new_wheelsConfig
 
-    def __checkFilters(self):
-        # Check filters are in the proper format, raise Exception otherwise.
+    def __getSimplifiedPythonVersionFromFilterFormat(self, pythonVersionInFilterFormat: str) -> str:
+        simplifiedPythonVersion: str = pythonVersionInFilterFormat.replace(".", "")
 
-        return None
+        simplifiedPythonVersion = re.sub(rf"({self._lte_char}|{self._gte_char}|{self._gt_char}|{self._lt_char})", r"", simplifiedPythonVersion)
+
+        return simplifiedPythonVersion
+
+    def __isCastableToInt(self, stringToCast: str) -> bool:
+        try:
+            int(stringToCast)
+        except ValueError:
+            return False
+        return True
+
+    def __checkFilters(self):
+        filterNames: List[str] = self.wheelsConfig.getFilterKeys()
+        for filterName in filterNames:
+
+            filtersForWheel: List[str] = self.wheelsConfig.getField(filterName)
+            for filter in filtersForWheel:
+
+                if re.search(rf"({self._lt_char}|{self._gt_char})", filter):
+                    if filterName != "python_tags":
+                        raise ValueError("WheelsManager::__checkFilters - NOT SUPPORTED inequalities for filter '" + filterName + "'.")
+                    else:
+                        filterSimplifiedPythonVersion: str = self.__getSimplifiedPythonVersionFromFilterFormat(filter)
+                        if not self.__isCastableToInt(filterSimplifiedPythonVersion):
+                            raise ValueError("WheelsManager::__checkFilters - NOT SUPPORTED Python version format in filter '" + filterName + "' (filter: " + filter + "). A version should be a number-formatted string.")
+                else:
+                    if re.search(rf"[^a-zA-Z1-9~_]", filter):
+                        raise ValueError("WheelsManager::__checkFilters - NOT SUPPORTED format in filter '" + filterName + "' (filter: " + filter + "). Remove the non-available characters.")
 
     def __getLiteralFilter(self, filter: str, filterName: str) -> str:
-        filterLiteral: str = filter.replace("~" , "")
+        filterLiteral: str = filter.replace("~", "")
 
         if filterName == "python_tags":
-            filterLiteral = filterLiteral.replace(".", "")
-
-            filterLiteral = re.sub(rf"({self._lte_char}|{self._gte_char}|{self._gt_char}|{self._lt_char})", r"", filterLiteral)
+            filterLiteral = self.__getSimplifiedPythonVersionFromFilterFormat(filterLiteral)
 
         return filterLiteral
 
-    def __getFilterVersion(self, filterLiteral: str) -> int:
-        resultingVersion: int
-        try:
-            resultingVersion = int(filterLiteral)
-        except ValueError:
-            return None
+    def __getPythonVersions(self, filterString: str, wheelString: str) -> Tuple[int, int]:
+        filterStringCleaned: str = re.sub(rf".*(\d+)", r"\1", filterString)
+        wheelStringCleaned: str = re.sub(rf".*(\d+)", r"\1", wheelString)
 
-        return resultingVersion
+        resultingFilterVersion: int = int(filterStringCleaned)
+        resultingWheelVersion: int = int(wheelStringCleaned)
 
-    def __getWheelPythonVersion(self, pythonTag: str) -> int:
-        return int(re.sub(rf".*(\d*)", r"\1", pythonTag))
+        filterNumberOfDigits: int = len(filterStringCleaned)
+        wheelNumberOfDigits: int = len(wheelStringCleaned)
+        if filterNumberOfDigits < wheelNumberOfDigits:
+            resultingWheelVersion = int(int(wheelStringCleaned) / pow(10, wheelNumberOfDigits - filterNumberOfDigits))
+        elif filterNumberOfDigits > wheelNumberOfDigits:
+            resultingFilterVersion = int(int(filterStringCleaned) / pow(10, filterNumberOfDigits - wheelNumberOfDigits))
+
+        return resultingFilterVersion, resultingWheelVersion
 
     @multimethod
     def __fulfillFilterCriteria(self, wheelAttribute: str, filter: str, filterName: str) -> bool:
-
-        # ToDo: move these lines to the self.__checkFilters, in order to do it just once, not every time we call this method.
-        lessOrGreaterReExp: str = "(" + self._lt_char + "|" + self._gt_char + ")"
-
-        if filterName != "python_tags" and re.search(lessOrGreaterReExp, filter):
-            raise ValueError("WheelsManager::__fulfillFilterCriteria - NOT SUPPORTED: inequality expression in settings wheel field " + filterName + ".")
-
-        # Check that for inequalities theres only a number (or a number with a point. if not -> raise exception)
-        # Check that if there's not an inequality, there's only the python version (no other weird characters)
-        
-
-
         filterLiteral: str = self.__getLiteralFilter(filter, filterName)
-        if re.search(self._aprox_char, filter):
+
+        if self._aprox_char in filter:
             if filterLiteral in wheelAttribute:
                 return True
         else:
             if filterName == "python_tags":
-                
-                filter_pyVersion = self.__getFilterVersion(filterLiteral)
-                if filter_pyVersion:
-                    wheelAttribute_pyVersion: int = self.__getWheelPythonVersion(wheelAttribute)
 
-                    if re.search(self._lte_char, filter):
-                        if wheelAttribute_pyVersion <= filter_pyVersion:
-                            return True
-                    elif re.search(self._gte_char, filter):
-                        if wheelAttribute_pyVersion >= filter_pyVersion:
-                            return True
-                    elif re.search(self._lt_char, filter):
-                        if wheelAttribute_pyVersion < filter_pyVersion:
-                            return True
-                    elif re.search(self._gt_char, filter):
-                        if wheelAttribute_pyVersion > filter_pyVersion:
-                            return True
+                filter_pyVersion, wheel_pyVersion = self.__getPythonVersions(filterLiteral, wheelAttribute)
+                if self._lte_char in filter:
+                    if wheel_pyVersion <= filter_pyVersion:
+                        return True
+                elif self._gte_char in filter:
+                    if wheel_pyVersion >= filter_pyVersion:
+                        return True
+                elif self._lt_char in filter:
+                    if wheel_pyVersion < filter_pyVersion:
+                        return True
+                elif self._gt_char in filter:
+                    if wheel_pyVersion > filter_pyVersion:
+                        return True
 
         return False
 
     @__fulfillFilterCriteria.register
-    def _(self, wheelAttribute: List[str], filter: str, filterName: str) -> bool:
+    def _(self, wheelAttributeList: List[str], filter: str, filterName: str) -> bool:
+        for wheelAttribute in wheelAttributeList:
+            if self.__fulfillFilterCriteria(wheelAttribute, filter, filterName):
+                return True
 
         return False
 
@@ -142,22 +160,26 @@ class WheelsManager:
     def isValidWheel(self, wheelName: str) -> bool:
         """Checks out whether the 'wheelName' is a valid wheel name according to the wheel-filename package (https://pypi.org/project/wheel-filename/) and the settings file in settings/wheelFilters.py."""
 
-        try:
-            parsedWheel = wheel_filename.parse_wheel_filename(wheelName)
+        if os.path.splitext(wheelName)[1] == ".whl":
+            try:
+                parsedWheel = wheel_filename.parse_wheel_filename(wheelName)
 
-            filtersEnabled: str = self._wheelsConfig.filtersEnabled
-            if filtersEnabled == "no":
-                return True
-            elif filtersEnabled != "yes":
-                raise ValueError("WheelsManager::isValidWheel - Incorrect value for 'filtersEnabled_wheels' field in settings/wheelFilters.py.")
+                filtersEnabled: str = self._wheelsConfig.filtersEnabled
+                if filtersEnabled == "no":
+                    return True
+                elif filtersEnabled != "yes":
+                    raise ValueError("WheelsManager::isValidWheel - Incorrect value for 'filtersEnabled_wheels' field in settings/wheelFilters.py.")
 
-            if self.__needToBeIncluded(parsedWheel):
-                return True
+                if self.__needToBeIncluded(parsedWheel):
+                    return True
+                else:
+                    print('Wheel ignored because of filters: "' + wheelName + '".')
 
-            return False
+                return False
 
-        except wheel_filename.InvalidFilenameError:
-            return False
+            except wheel_filename.InvalidFilenameError:
+                print('Incorrect wheel format "' + wheelName + '". Ignored.')
+                return False
 
 
 class HTMLManager:
@@ -274,7 +296,6 @@ class HTMLManager:
 
         resultingDict: Dict[str, str] = dict()
         for a in soup.find_all("a", href=True):
-            print("adsfasdfsd: " + str(type(a.string)))
             resultingDict[str(a.string)] = a["href"]
 
         return resultingDict
