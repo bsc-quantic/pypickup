@@ -4,16 +4,13 @@ from multiprocessing.sharedctypes import Value
 import os
 
 import argparse
-from site import addpackage
-from unittest import registerResult, result
 from urllib import request
 import re
+from typing import Tuple, Dict, List
 
 from bs4 import BeautifulSoup, element as bs4Element
 import wheel_filename
 from multimethod import multimethod
-
-from typing import Tuple, Dict, List, Union
 
 from pypi_cache.settings.wheelFilters import WheelsConfig
 
@@ -325,7 +322,7 @@ class LocalPyPIController:
     @property
     def packageName(self):
         return self._packageName
-    
+
     @property
     def onlySources(self):
         return self._onlySources
@@ -341,7 +338,7 @@ class LocalPyPIController:
     @packageName.setter
     def packageName(self, new_PackageName: str):
         self._packageName = new_PackageName
-    
+
     @onlySources.setter
     def onlySources(self, new_onlySources: bool):
         self._onlySources = new_onlySources
