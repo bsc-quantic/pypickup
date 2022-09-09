@@ -83,8 +83,8 @@ class WheelsManager:
         return filterLiteral
 
     def __getPythonVersions(self, filterString: str, wheelString: str) -> Tuple[int, int]:
-        filterStringCleaned: str = re.sub(rf".*(\d+)", r"\1", filterString)
-        wheelStringCleaned: str = re.sub(rf".*(\d+)", r"\1", wheelString)
+        filterStringCleaned: str = re.sub(rf"[a-zA-Z]*(\d*)", r"\1", filterString)
+        wheelStringCleaned: str = re.sub(rf"[a-zA-Z]*(\d*)", r"\1", wheelString)
 
         resultingFilterVersion: int = int(filterStringCleaned)
         resultingWheelVersion: int = int(wheelStringCleaned)

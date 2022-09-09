@@ -2,6 +2,7 @@ filtersEnabled_wheels = "yes"
 
 inOrOut_wheels = "out"
 
+# ToDo: "(python_tags>=1.2 | python_tags==1.01) & version>=18.0 & #^cp\d*d-\d*.whl$ | #^cp\d*d-manylinux14.whl$"
 inFilters_wheels = {
     "version": [],
     "python_tags": [">=3.5"],
@@ -15,6 +16,14 @@ outFilters_wheels = {
     "abi_tags": ["~mu"],
     "platform_tags": ["~i686", "~win32"]
 }
+
+# Attributes lists (https://peps.python.org/pep-0425/):
+# version: rc[X]
+# python_tags: py, cp, ip, pp, jy
+# abi_tags: [XX]m, [XX]u, [XX]d
+# platform_tags: win32, linux_i386, linux_x86_64
+#
+#   where X are numbers.
 
 from typing import Dict, List
 
