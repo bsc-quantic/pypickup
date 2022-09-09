@@ -107,7 +107,7 @@ class HTMLManager:
             if not aEntry is None:
                 aEntriesOutput.append(aEntry)
 
-    def filterInHTML(self, htmlContent: str, regexZIPAndTars: str, packageName: str) -> str:
+    def filterInHTML(self, htmlContent: str, regexZIPAndTars: str, packageName: str, onlySources: bool) -> str:
         """Keeps <a> entries in 'htmlContent' that are .whl or zip (or tar.gz, in case it doesn't exists a homonym .zip). The wheel must follow a particular set of rules. The ones that do not match any are filtered out."""
 
         outputSoup = BeautifulSoup(self._baseHTML_fromScratch, "html.parser")
@@ -122,8 +122,7 @@ class HTMLManager:
 
         aEntriesOutput: list = list()
         for aEntry in aEntries:
-            if self._wheelsManager.isValidWheel(aEntry.string):
-                # if self.__isValidWheel(aEntry.string, whlRules):
+            if not onlySources and self._wheelsManager.isValidWheel(aEntry.string):
                 aEntriesOutput.append(aEntry)
             else:
                 reSult = re.match(regexZIPAndTars, aEntry.string)
@@ -171,6 +170,7 @@ class LocalPyPIController:
 
     def __init__(self):
         self._packageName: str
+        self._onlySources: bool
         self._pypiLocalPath: str
 
         self._packageLocalFileName: str
@@ -180,6 +180,10 @@ class LocalPyPIController:
     @property
     def packageName(self):
         return self._packageName
+    
+    @property
+    def onlySources(self):
+        return self._onlySources
 
     @property
     def pypiLocalPath(self):
@@ -192,6 +196,10 @@ class LocalPyPIController:
     @packageName.setter
     def packageName(self, new_PackageName: str):
         self._packageName = new_PackageName
+    
+    @onlySources.setter
+    def onlySources(self, new_onlySources: bool):
+        self._onlySources = new_onlySources
 
     @pypiLocalPath.setter
     def pypiLocalPath(self, new_PyPiLocalPath: str):
@@ -238,6 +246,7 @@ class LocalPyPIController:
         """Parse the incoming arguments. A packageName and and pypiLocalPath are expected. Besides, it initializes derived class attributes."""
 
         self.packageName = args.packageName
+        self.onlySources = args.onlySources
         self.pypiLocalPath = args.pypiLocalPath
 
         self.pypiLocalPath = self.pypiLocalPath.replace("\\", "/")
@@ -297,7 +306,7 @@ class LocalPyPIController:
 
         pypiPackageHTML: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
 
-        pypiPackageHTML: str = self._htmlManager.filterInHTML(pypiPackageHTML, self._regexZIPAndTars, self.packageName)
+        pypiPackageHTML: str = self._htmlManager.filterInHTML(pypiPackageHTML, self._regexZIPAndTars, self.packageName, self.onlySources)
         packageHTML_file = open(self.packageLocalFileName + self._packageHTMLFileName, "w")
         packageHTML_file.write(pypiPackageHTML)
         packageHTML_file.close()
@@ -356,8 +365,9 @@ class LocalPyPIController:
         with open(self.packageLocalFileName + self._packageHTMLFileName, "r") as pypiLocalIndexFile:
             pypiLocalIndex = pypiLocalIndexFile.read()
 
-        pypiRemoteIndexFiltered: str = self._htmlManager.filterInHTML(pypiRemoteIndex, self._regexZIPAndTars, self.packageName)
+        pypiRemoteIndexFiltered: str = self._htmlManager.filterInHTML(pypiRemoteIndex, self._regexZIPAndTars, self.packageName, self.onlySources)
 
+        # ToDo: fix the bug happening if the local repo hast the wheels&src but the update method has enabled the -s option which means we only want the source. the warning message would not apply yet
         remoteIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiRemoteIndexFiltered)
         localIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiLocalIndex)
         newPackagesToDownload, warningMessage = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
