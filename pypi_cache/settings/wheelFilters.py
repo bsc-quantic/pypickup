@@ -1,4 +1,4 @@
-filtersEnabled_wheels = "yes"
+filtersEnabled_wheels = "no"
 
 inOrOut_wheels = "out"
 
