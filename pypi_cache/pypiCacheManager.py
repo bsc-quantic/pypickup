@@ -4,7 +4,7 @@ from multiprocessing.sharedctypes import Value
 import os
 
 import argparse
-from urllib import request
+import requests
 import re
 from typing import Tuple, Dict, List
 
@@ -370,7 +370,9 @@ class LocalPyPIController:
         for fileName, fileLink in packagesToDownload.items():
             print("Downloading package #" + str(packageCounter) + ": '" + fileName + "'...")
             # ToDo: implement a retry/resume feature in case the .urlretrieve fails
-            request.urlretrieve(fileLink, self.packageLocalFileName + fileName)
+            response = requests.get(fileLink)
+            with open(self.packageLocalFileName + fileName, "wb") as f:
+                f.write(response.content)
 
             if addPackageFilesToIndex:
                 _, updatedHTML = self._htmlManager.insertAEntry(updatedHTML, fileLink, fileName)
@@ -446,7 +448,7 @@ class LocalPyPIController:
     def addPackage(self):
         """Downloads all the files for the required package 'packageName', i.e. all the .whl, the .zip and the .tar.gz if necessary."""
 
-        pypiPackageHTML: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
+        pypiPackageHTML: str = requests.get(self._remotePypiBaseDir + self.packageName).content.decode("utf-8")
 
         pypiPackageHTML: str = self._htmlManager.filterInHTML(pypiPackageHTML, self._regexZIPAndTars, self.packageName, self.onlySources)
         packageHTML_file = open(self.packageLocalFileName + self._packageHTMLFileName, "w")
@@ -504,7 +506,7 @@ class LocalPyPIController:
     def synchronizeWithRemote(self):
         """Synchronize the self.packageName against the PyPI remote repository. It adds the new available packages to the packageName/index.html and download them. Assumes the folders exists."""
 
-        pypiRemoteIndex: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
+        pypiRemoteIndex: str = requests.get(self._remotePypiBaseDir + self.packageName).content.decode("utf-8")
         with open(self.packageLocalFileName + self._packageHTMLFileName, "r") as pypiLocalIndexFile:
             pypiLocalIndex: str = pypiLocalIndexFile.read()
 
