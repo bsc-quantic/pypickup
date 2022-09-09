@@ -1,5 +1,6 @@
 #! /usr/bin/python
 from io import TextIOWrapper
+from multiprocessing.sharedctypes import Value
 import os
 
 import argparse
@@ -8,12 +9,13 @@ from unittest import registerResult, result
 from urllib import request
 import re
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, element as bs4Element
 import wheel_filename
+from multimethod import multimethod
 
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List, Union
 
-from pypi_cache.settings.wheelFilters import Config
+from pypi_cache.settings.wheelFilters import WheelsConfig
 
 
 class WheelsManager:
@@ -21,20 +23,163 @@ class WheelsManager:
     A class to manage Python wheels.
     """
 
+    _aprox_char: str = "~"
+    _lt_char: str = "<"
+    _gt_char: str = ">"
+    _lte_char: str = "<="
+    _gte_char: str = ">="
+
     def __init__(self):
-        self._wheelsConfig = Config()
+        self._wheelsConfig = WheelsConfig()
+
+        self.__checkFilters()
+
+    @property
+    def wheelsConfig(self):
+        return self._wheelsConfig
+
+    @wheelsConfig.setter
+    def packageName(self, new_wheelsConfig: str):
+        self._wheelsConfig = new_wheelsConfig
+
+    def __getSimplifiedPythonVersionFromFilterFormat(self, pythonVersionInFilterFormat: str) -> str:
+        simplifiedPythonVersion: str = pythonVersionInFilterFormat.replace(".", "")
+
+        simplifiedPythonVersion = re.sub(rf"({self._lte_char}|{self._gte_char}|{self._gt_char}|{self._lt_char})", r"", simplifiedPythonVersion)
+
+        return simplifiedPythonVersion
+
+    def __isCastableToInt(self, stringToCast: str) -> bool:
+        try:
+            int(stringToCast)
+        except ValueError:
+            return False
+        return True
+
+    def __checkFilters(self):
+        filterNames: List[str] = self.wheelsConfig.getFilterKeys()
+        for filterName in filterNames:
+
+            filtersForWheel: List[str] = self.wheelsConfig.getField(filterName)
+            for filter in filtersForWheel:
+
+                if re.search(rf"({self._lt_char}|{self._gt_char})", filter):
+                    if filterName != "python_tags":
+                        raise ValueError("WheelsManager::__checkFilters - NOT SUPPORTED inequalities for filter '" + filterName + "'.")
+                    else:
+                        filterSimplifiedPythonVersion: str = self.__getSimplifiedPythonVersionFromFilterFormat(filter)
+                        if not self.__isCastableToInt(filterSimplifiedPythonVersion):
+                            raise ValueError("WheelsManager::__checkFilters - NOT SUPPORTED Python version format in filter '" + filterName + "' (filter: " + filter + "). A version should be a number-formatted string.")
+                else:
+                    if re.search(rf"[^a-zA-Z1-9~_]", filter):
+                        raise ValueError("WheelsManager::__checkFilters - NOT SUPPORTED format in filter '" + filterName + "' (filter: " + filter + "). Remove the non-available characters.")
+
+    def __getLiteralFilter(self, filter: str, filterName: str) -> str:
+        filterLiteral: str = filter.replace("~", "")
+
+        if filterName == "python_tags":
+            filterLiteral = self.__getSimplifiedPythonVersionFromFilterFormat(filterLiteral)
+
+        return filterLiteral
+
+    def __getPythonVersions(self, filterString: str, wheelString: str) -> Tuple[int, int]:
+        filterStringCleaned: str = re.sub(rf"[a-zA-Z]*(\d*)", r"\1", filterString)
+        wheelStringCleaned: str = re.sub(rf"[a-zA-Z]*(\d*)", r"\1", wheelString)
+
+        resultingFilterVersion: int = int(filterStringCleaned)
+        resultingWheelVersion: int = int(wheelStringCleaned)
+
+        filterNumberOfDigits: int = len(filterStringCleaned)
+        wheelNumberOfDigits: int = len(wheelStringCleaned)
+        if filterNumberOfDigits < wheelNumberOfDigits:
+            resultingWheelVersion = int(int(wheelStringCleaned) / pow(10, wheelNumberOfDigits - filterNumberOfDigits))
+        elif filterNumberOfDigits > wheelNumberOfDigits:
+            resultingFilterVersion = int(int(filterStringCleaned) / pow(10, filterNumberOfDigits - wheelNumberOfDigits))
+
+        return resultingFilterVersion, resultingWheelVersion
+
+    @multimethod
+    def __fulfillFilterCriteria(self, wheelAttribute: str, filter: str, filterName: str) -> bool:
+        filterLiteral: str = self.__getLiteralFilter(filter, filterName)
+
+        if self._aprox_char in filter:
+            if filterLiteral in wheelAttribute:
+                return True
+        else:
+            if filterName == "python_tags":
+
+                filter_pyVersion, wheel_pyVersion = self.__getPythonVersions(filterLiteral, wheelAttribute)
+                if self._lte_char in filter:
+                    if wheel_pyVersion <= filter_pyVersion:
+                        return True
+                elif self._gte_char in filter:
+                    if wheel_pyVersion >= filter_pyVersion:
+                        return True
+                elif self._lt_char in filter:
+                    if wheel_pyVersion < filter_pyVersion:
+                        return True
+                elif self._gt_char in filter:
+                    if wheel_pyVersion > filter_pyVersion:
+                        return True
+
+        return False
+
+    @__fulfillFilterCriteria.register
+    def _(self, wheelAttributeList: List[str], filter: str, filterName: str) -> bool:
+        for wheelAttribute in wheelAttributeList:
+            if self.__fulfillFilterCriteria(wheelAttribute, filter, filterName):
+                return True
+
+        return False
+
+    def __getDefaultBehaviourForIncludingWheels(self):
+        if self.wheelsConfig.inOrOut == "in":
+            return False
+        elif self.wheelsConfig.inOrOut == "out":
+            return True
+        else:
+            raise ValueError("WheelsManager::__getDefaultBehaviourForIncludingWheels - " + self.wheelsConfig.incorrectInOrOutMessage)
+
+    def __needToBeIncluded(self, parsedWheel: wheel_filename.ParsedWheelFilename) -> bool:
+        filterKeys: List[str] = self.wheelsConfig.getFilterKeys()
+        for filterKey in filterKeys:
+            wheelAttribute = getattr(parsedWheel, filterKey)
+            filtersForWheel: List[str] = self.wheelsConfig.getField(filterKey)
+
+            for filter in filtersForWheel:
+                if self.__fulfillFilterCriteria(wheelAttribute, filter, filterKey):
+                    if self.wheelsConfig.inOrOut == "in":
+                        return True
+                    elif self.wheelsConfig.inOrOut == "out":
+                        return False
+                    else:
+                        raise ValueError("WheelsManager::__needToBeIncluded - " + self.wheelsConfig.incorrectInOrOutMessage)
+
+        return self.__getDefaultBehaviourForIncludingWheels()
 
     def isValidWheel(self, wheelName: str) -> bool:
         """Checks out whether the 'wheelName' is a valid wheel name according to the wheel-filename package (https://pypi.org/project/wheel-filename/) and the settings file in settings/wheelFilters.py."""
 
-        try:
-            parsedWheel = wheel_filename.parse_wheel_filename(wheelName)
+        if os.path.splitext(wheelName)[1] == ".whl":
+            try:
+                parsedWheel = wheel_filename.parse_wheel_filename(wheelName)
 
-            # ToDo: build a command "config" to set a file with the key words that we will use to filter out a wheel by a certain field (using the ones at 'parsedWheel')
+                filtersEnabled: str = self._wheelsConfig.filtersEnabled
+                if filtersEnabled == "no":
+                    return True
+                elif filtersEnabled != "yes":
+                    raise ValueError("WheelsManager::isValidWheel - Incorrect value for 'filtersEnabled_wheels' field in settings/wheelFilters.py.")
 
-            return True
-        except wheel_filename.InvalidFilenameError:
-            return False
+                if self.__needToBeIncluded(parsedWheel):
+                    return True
+                else:
+                    print('Wheel ignored because of filters: "' + wheelName + '".')
+
+                return False
+
+            except wheel_filename.InvalidFilenameError:
+                print('Incorrect wheel format "' + wheelName + '". Ignored.')
+                return False
 
 
 class HTMLManager:
@@ -100,7 +245,7 @@ class HTMLManager:
 
         return False, self.__prettifyHTML(soup)
 
-    def __addZipsOrTarsToEntries(self, zipAndTarsDict: dict, originalSoup: BeautifulSoup, aEntriesOutput: list):
+    def __addZipsOrTarsToEntries(self, zipAndTarsDict: Dict[str, str], originalSoup: BeautifulSoup, aEntriesOutput: List[bs4Element.Tag]):
         for name, ext in zipAndTarsDict.items():
 
             aEntry: str = originalSoup.find("a", string=name + "." + ext)
@@ -118,9 +263,9 @@ class HTMLManager:
         zipAndTarsDict: Dict[str, str] = dict()
 
         originalSoup = BeautifulSoup(htmlContent, "html.parser")
-        aEntries: list = originalSoup.find_all("a")
+        aEntries: bs4Element.ResultSet[bs4Element.Tag] = originalSoup.find_all("a")
 
-        aEntriesOutput: list = list()
+        aEntriesOutput: List[bs4Element.Tag] = list()
         for aEntry in aEntries:
             if not onlySources and self._wheelsManager.isValidWheel(aEntry.string):
                 aEntriesOutput.append(aEntry)
@@ -144,14 +289,14 @@ class HTMLManager:
 
         return self.__prettifyHTML(outputSoup)
 
-    def getHRefsList(self, pypiPackageHTML: str) -> dict:
+    def getHRefsList(self, pypiPackageHTML: str) -> Dict[str, str]:
         """Returns a dict of the href attributes appearing in 'pypiPackageHTML', the package's name in the key."""
 
         soup = BeautifulSoup(pypiPackageHTML, "html.parser")
 
-        resultingDict: dict = dict()
+        resultingDict: Dict[str, str] = dict()
         for a in soup.find_all("a", href=True):
-            resultingDict[a.string] = a["href"]
+            resultingDict[str(a.string)] = a["href"]
 
         return resultingDict
 
@@ -216,17 +361,17 @@ class LocalPyPIController:
         file.truncate(0)
         file.write(textToWrite)
 
-    def __downloadFilesInLocalPath(self, packagesToDownload: dict, outputMessage: str, indexHTML: str = "", addPackageFilesToIndex: bool = False) -> Tuple[str, str]:
+    def __downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str = "", addPackageFilesToIndex: bool = False) -> str:
         updatedHTML: str = indexHTML
 
         if len(packagesToDownload) == 0:
-            outputMessage += "No new packages in the remote to download."
+            print("No new packages in the remote to download.")
         else:
-            outputMessage += str(len(packagesToDownload)) + " new packages available.\n"
+            print(str(len(packagesToDownload)) + " new packages available.")
 
         packageCounter: int = 1
         for fileName, fileLink in packagesToDownload.items():
-            outputMessage += "Downloading package #" + str(packageCounter) + ": '" + fileName + "'...\n"
+            print("Downloading package #" + str(packageCounter) + ": '" + fileName + "'...")
             # ToDo: implement a retry/resume feature in case the .urlretrieve fails
             request.urlretrieve(fileLink, self.packageLocalFileName + fileName)
 
@@ -235,7 +380,7 @@ class LocalPyPIController:
 
             packageCounter = packageCounter + 1
 
-        return outputMessage, updatedHTML
+        return updatedHTML
 
     ### 'Add' command methods ###
 
@@ -301,7 +446,7 @@ class LocalPyPIController:
 
         return needToDownloadFiles
 
-    def addPackage(self) -> str:
+    def addPackage(self):
         """Downloads all the files for the required package 'packageName', i.e. all the .whl, the .zip and the .tar.gz if necessary."""
 
         pypiPackageHTML: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
@@ -311,12 +456,9 @@ class LocalPyPIController:
         packageHTML_file.write(pypiPackageHTML)
         packageHTML_file.close()
 
-        linksToDownload: dict = self._htmlManager.getHRefsList(pypiPackageHTML)
+        linksToDownload: Dict[str, str] = self._htmlManager.getHRefsList(pypiPackageHTML)
 
-        resultingMessage: str = ""
-        resultingMessage, _ = self.__downloadFilesInLocalPath(linksToDownload, resultingMessage)
-
-        return resultingMessage
+        self.__downloadFilesInLocalPath(linksToDownload)
 
     ### 'Update' command methods ###
 
@@ -326,7 +468,7 @@ class LocalPyPIController:
         indexHTMLFile = open(self.pypiLocalPath + "/" + self._baseHTMLFileName, "r")
         baseHTMLStr: str = indexHTMLFile.read()
 
-        packagesDict: dict = self._htmlManager.getHRefsList(baseHTMLStr)
+        packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(baseHTMLStr)
 
         if self.packageName in packagesDict:
             return True
@@ -343,41 +485,37 @@ class LocalPyPIController:
 
         return additionalPackagesMessage
 
-    def __getNewPackagesInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> Tuple[dict, str]:
-        resultingDict: dict = dict()
+    def __getNewPackagesInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> Dict[str, str]:
+        resultingDict: Dict[str, str] = dict()
 
         for remotePackageName, remotePackageURL in remoteIndexHRefs.items():
             if not remotePackageName in localIndexHRefs:
                 resultingDict[remotePackageName] = remotePackageURL
 
         additionalPackagesMessage: str = self.__checkPackagesInLocalButNotInRemote(remoteIndexHRefs, localIndexHRefs)
+        if additionalPackagesMessage != "":
+            print("WARNING! " + additionalPackagesMessage)
 
-        return resultingDict, additionalPackagesMessage
+        return resultingDict
 
     def __overwritePackageIndexFile(self, textToWrite: str):
         with open(self.packageLocalFileName + self._packageHTMLFileName, "r+") as pypiLocalIndexFile:
             self.__writeFileFromTheStart(pypiLocalIndexFile, textToWrite)
 
-    def synchronizeWithRemote(self) -> str:
+    def synchronizeWithRemote(self):
         """Synchronize the self.packageName against the PyPI remote repository. It adds the new available packages to the packageName/index.html and download them. Assumes the folders exists."""
 
         pypiRemoteIndex: str = request.urlopen(self._remotePypiBaseDir + self.packageName).read().decode("utf-8")
         with open(self.packageLocalFileName + self._packageHTMLFileName, "r") as pypiLocalIndexFile:
-            pypiLocalIndex = pypiLocalIndexFile.read()
+            pypiLocalIndex: str = pypiLocalIndexFile.read()
 
         pypiRemoteIndexFiltered: str = self._htmlManager.filterInHTML(pypiRemoteIndex, self._regexZIPAndTars, self.packageName, self.onlySources)
 
         # ToDo: fix the bug happening if the local repo hast the wheels&src but the update method has enabled the -s option which means we only want the source. the warning message would not apply yet
         remoteIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiRemoteIndexFiltered)
         localIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiLocalIndex)
-        newPackagesToDownload, warningMessage = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
+        newPackagesToDownload: Dict[str, str] = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
 
-        resultingMessage: str = ""
-        if warningMessage != "":
-            resultingMessage += "WARNING! " + warningMessage + "\n"
-
-        resultingMessage, pypiLocalIndexUpdated = self.__downloadFilesInLocalPath(newPackagesToDownload, resultingMessage, pypiLocalIndex, True)
+        pypiLocalIndexUpdated: str = self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, True)
 
         self.__overwritePackageIndexFile(pypiLocalIndexUpdated)
-
-        return resultingMessage
