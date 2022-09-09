@@ -478,10 +478,12 @@ class LocalPyPIController:
     def __checkPackagesInLocalButNotInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> str:
         additionalPackagesMessage: str = ""
         for localPackageName, localPackageURL in localIndexHRefs.items():
+
             if not localPackageName in remoteIndexHRefs:
-                if additionalPackagesMessage == "":
-                    additionalPackagesMessage += "Packages in the local but not in the remote (check filter settings):\n"
-                additionalPackagesMessage += localPackageName + "\n"
+                if not (self.onlySources and os.path.splitext(localPackageName)[1] == ".whl"):
+                    if additionalPackagesMessage == "":
+                        additionalPackagesMessage += "Packages in the local but not in the remote (check filter settings):\n"
+                    additionalPackagesMessage += localPackageName + "\n"
 
         return additionalPackagesMessage
 
