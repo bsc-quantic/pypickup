@@ -265,6 +265,6 @@ class LocalPyPIController:
         localIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiLocalIndex)
         newPackagesToDownload: Dict[str, str] = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
 
-        pypiLocalIndexUpdated, _ = self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, True)
+        pypiLocalIndexUpdated = self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, True)
 
         self.__overwritePackageIndexFile(pypiLocalIndexUpdated)
