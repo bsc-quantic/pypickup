@@ -1,15 +1,11 @@
 #! /usr/bin/python
-from genericpath import isdir
 from io import TextIOWrapper
-from multiprocessing.sharedctypes import Value
 import os
 
 import argparse
-import shutil
-from wsgiref.util import shift_path_info
 import requests
 import re
-from typing import Tuple, Dict, List, Union
+from typing import Tuple, Dict, List
 
 from bs4 import BeautifulSoup, element as bs4Element
 import wheel_filename
