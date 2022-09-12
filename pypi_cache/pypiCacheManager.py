@@ -1,4 +1,5 @@
 #! /usr/bin/python
+from fileinput import filelineno
 from io import TextIOWrapper
 import os
 
@@ -97,17 +98,26 @@ class LocalPyPIController:
             print(str(len(packagesToDownload)) + " new packages available.")
 
         packageCounter: int = 1
+        actuallyDownloadedPackages: int = 0
         for fileName, fileLink in packagesToDownload.items():
             print("Downloading package #" + str(packageCounter) + ": '" + fileName + "'...")
             # ToDo: implement a retry/resume feature in case the .urlretrieve fails
             ok, status, content = self.__getLink(fileLink)
-            with open(self.packageLocalFileName + fileName, "wb") as f:
-                f.write(content)
+            if not ok:
+                print("Error downloading link: " + fileLink + " (status: " + status + ")")
+            else:
+                with open(self.packageLocalFileName + fileName, "wb") as f:
+                    f.write(content)
 
-            if addPackageFilesToIndex:
-                _, updatedHTML = self._htmlManager.insertAEntry(updatedHTML, fileLink, fileName)
+                if addPackageFilesToIndex:
+                    _, updatedHTML = self._htmlManager.insertAEntry(updatedHTML, fileLink, fileName)
 
-            packageCounter = packageCounter + 1
+                actuallyDownloadedPackages += 1
+
+            packageCounter += 1
+
+        print()
+        print(str(actuallyDownloadedPackages) + "/" + str(len(packagesToDownload)) + " downloaded.")
 
         return updatedHTML
 
