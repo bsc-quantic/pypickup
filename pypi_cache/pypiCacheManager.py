@@ -172,7 +172,7 @@ class LocalPyPIController:
         if len(htmlContent) == 0:
             htmlContent = self._htmlManager.getBaseHTML()
 
-        entryAlreadyExists, htmlUpdated = self._htmlManager.insertAEntry(htmlContent, self.packageLocalFileName, self.packageName)
+        entryAlreadyExists, htmlUpdated = self._htmlManager.insertAEntry(htmlContent, "./" + self.packageName, self.packageName)
 
         needToDownloadFiles: bool = False
         if not entryAlreadyExists:
