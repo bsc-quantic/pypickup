@@ -110,7 +110,7 @@ class LocalPyPIController:
                     f.write(content)
 
                 if addPackageFilesToIndex:
-                    _, updatedHTML = self._htmlManager.insertAEntry(updatedHTML, fileLink, fileName)
+                    _, updatedHTML = self._htmlManager.insertHTMLEntry(updatedHTML, "a", {"href": fileLink}, fileName)
 
                 actuallyDownloadedPackages += 1
 
@@ -172,7 +172,7 @@ class LocalPyPIController:
         if len(htmlContent) == 0:
             htmlContent = self._htmlManager.getBaseHTML()
 
-        entryAlreadyExists, htmlUpdated = self._htmlManager.insertAEntry(htmlContent, "./" + self.packageName, self.packageName)
+        entryAlreadyExists, htmlUpdated = self._htmlManager.insertHTMLEntry(htmlContent, "a", {"href": "./" + self.packageName}, self.packageName)
 
         needToDownloadFiles: bool = False
         if not entryAlreadyExists:

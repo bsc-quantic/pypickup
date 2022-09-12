@@ -224,16 +224,19 @@ class HTMLManager:
 
         return resultingHTML
 
-    def insertAEntry(self, htmlString: str, hrefURL: str, newEntryText: str) -> Tuple[bool, str]:
-        """Appends a new element <a> into the 'htmlString' body, with the 'hrefURL' and the 'newEntryText' parameters. Returns whether the entry already exists in the htmlString, and the updated htmlString."""
+    def insertHTMLEntry(self, htmlString: str, tagName: str, attributes: Dict[str, str], newEntryText: str) -> Tuple[bool, str]:
+        """Appends a new element <'tagName'> into the 'htmlString' body, with the attributes in 'attributes'. Returns whether the entry already existed in the htmlString, and the updated htmlString."""
 
         soup = BeautifulSoup(htmlString, "html.parser")
 
-        if soup.find("a", string=newEntryText):
+        if soup.find(tagName, string=newEntryText):
             return True, ""
 
-        newEntry = soup.new_tag("a", href=hrefURL)
+        newEntry = soup.new_tag(tagName)
+        for attrName, attrValue in attributes.items():
+            newEntry[attrName] = attrValue
         newEntry.string = newEntryText
+
         soup.html.body.append(newEntry)
 
         return False, self.__prettifyHTML(soup)
@@ -249,9 +252,9 @@ class HTMLManager:
         """Keeps <a> entries in 'htmlContent' that are .whl or zip (or tar.gz, in case it doesn't exists a homonym .zip). The wheel must follow a particular set of rules. The ones that do not match any are filtered out."""
 
         outputSoup = BeautifulSoup(self._baseHTML_fromScratch, "html.parser")
-        headEntry = outputSoup.new_tag("h1")
-        headEntry.string = "Links for " + packageName
-        outputSoup.html.body.append(headEntry)
+        # headEntry = outputSoup.new_tag("h1")
+        # headEntry.string = "Links for " + packageName
+        # outputSoup.html.body.append(headEntry)
 
         zipAndTarsDict: Dict[str, str] = dict()
 
