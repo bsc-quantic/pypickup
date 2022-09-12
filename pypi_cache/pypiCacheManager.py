@@ -1,12 +1,15 @@
 #! /usr/bin/python
+from genericpath import isdir
 from io import TextIOWrapper
 from multiprocessing.sharedctypes import Value
 import os
 
 import argparse
+import shutil
+from wsgiref.util import shift_path_info
 import requests
 import re
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Union
 
 from bs4 import BeautifulSoup, element as bs4Element
 import wheel_filename
@@ -335,6 +338,10 @@ class LocalPyPIController:
     def packageLocalFileName(self):
         return self._packageLocalFileName
 
+    @property
+    def remotePyPIRepository(self):
+        return self._remotePypiBaseDir
+
     @packageName.setter
     def packageName(self, new_PackageName: str):
         self._packageName = new_PackageName
@@ -358,6 +365,21 @@ class LocalPyPIController:
         file.truncate(0)
         file.write(textToWrite)
 
+    def __getLink(self, linkURL: str) -> Tuple[bool, str, bytes]:
+        try:
+            response = requests.get(linkURL)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as errh:
+            return False, "HTTP Error: " + str(errh), response.content
+        except requests.exceptions.ConnectionError as errc:
+            return False, "Error Connecting: " + str(errc), response.content
+        except requests.exceptions.Timeout as errt:
+            return False, "Timeout Error: " + str(errt), response.content
+        except requests.exceptions.RequestException as err:
+            return False, "OOps: Something Else: " + str(err), response.content
+
+        return True, "200 OK", response.content
+
     def __downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str = "", addPackageFilesToIndex: bool = False) -> str:
         updatedHTML: str = indexHTML
 
@@ -370,9 +392,9 @@ class LocalPyPIController:
         for fileName, fileLink in packagesToDownload.items():
             print("Downloading package #" + str(packageCounter) + ": '" + fileName + "'...")
             # ToDo: implement a retry/resume feature in case the .urlretrieve fails
-            response = requests.get(fileLink)
+            ok, status, content = self.__getLink(fileLink)
             with open(self.packageLocalFileName + fileName, "wb") as f:
-                f.write(response.content)
+                f.write(content)
 
             if addPackageFilesToIndex:
                 _, updatedHTML = self._htmlManager.insertAEntry(updatedHTML, fileLink, fileName)
@@ -398,6 +420,15 @@ class LocalPyPIController:
         self.packageLocalFileName = os.path.join(self.pypiLocalPath, self.packageName) + "/"
 
         self.__initRegexs()
+
+    def validPackageName(self) -> bool:
+        """Checks whether the package link exists or not. If not, it returns False. True otherwise."""
+        
+        ok, _, _ = self.__getLink(self._remotePypiBaseDir + self.packageName)
+        if not ok:
+            return False
+        
+        return True
 
     def __createDirIfNeeded(self, directory: str):
         if not os.path.isdir(directory):
@@ -448,14 +479,18 @@ class LocalPyPIController:
     def addPackage(self):
         """Downloads all the files for the required package 'packageName', i.e. all the .whl, the .zip and the .tar.gz if necessary."""
 
-        pypiPackageHTML: str = requests.get(self._remotePypiBaseDir + self.packageName).content.decode("utf-8")
+        ok, status, pypiPackageHTML = self.__getLink(self._remotePypiBaseDir + self.packageName)
+        if not ok:
+            print(status)
+        else:
+            pypiPackageHTMLStr: str = pypiPackageHTML.decode("utf-8")
 
-        pypiPackageHTML: str = self._htmlManager.filterInHTML(pypiPackageHTML, self._regexZIPAndTars, self.packageName, self.onlySources)
+        pypiPackageHTMLStr = self._htmlManager.filterInHTML(pypiPackageHTMLStr, self._regexZIPAndTars, self.packageName, self.onlySources)
         packageHTML_file = open(self.packageLocalFileName + self._packageHTMLFileName, "w")
-        packageHTML_file.write(pypiPackageHTML)
+        packageHTML_file.write(pypiPackageHTMLStr)
         packageHTML_file.close()
 
-        linksToDownload: Dict[str, str] = self._htmlManager.getHRefsList(pypiPackageHTML)
+        linksToDownload: Dict[str, str] = self._htmlManager.getHRefsList(pypiPackageHTMLStr)
 
         self.__downloadFilesInLocalPath(linksToDownload)
 
@@ -506,17 +541,22 @@ class LocalPyPIController:
     def synchronizeWithRemote(self):
         """Synchronize the self.packageName against the PyPI remote repository. It adds the new available packages to the packageName/index.html and download them. Assumes the folders exists."""
 
-        pypiRemoteIndex: str = requests.get(self._remotePypiBaseDir + self.packageName).content.decode("utf-8")
+        ok, status, pypiRemoteIndex = self.__getLink(self._remotePypiBaseDir + self.packageName)
+        if not ok:
+            print(status)
+        else:
+            pypiRemoteIndexStr: str = pypiRemoteIndex.decode("utf-8")
+
         with open(self.packageLocalFileName + self._packageHTMLFileName, "r") as pypiLocalIndexFile:
             pypiLocalIndex: str = pypiLocalIndexFile.read()
 
-        pypiRemoteIndexFiltered: str = self._htmlManager.filterInHTML(pypiRemoteIndex, self._regexZIPAndTars, self.packageName, self.onlySources)
+        pypiRemoteIndexFiltered: str = self._htmlManager.filterInHTML(pypiRemoteIndexStr, self._regexZIPAndTars, self.packageName, self.onlySources)
 
         # ToDo: fix the bug happening if the local repo hast the wheels&src but the update method has enabled the -s option which means we only want the source. the warning message would not apply yet
         remoteIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiRemoteIndexFiltered)
         localIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiLocalIndex)
         newPackagesToDownload: Dict[str, str] = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
 
-        pypiLocalIndexUpdated: str = self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, True)
+        pypiLocalIndexUpdated, _ = self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, True)
 
         self.__overwritePackageIndexFile(pypiLocalIndexUpdated)

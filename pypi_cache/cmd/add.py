@@ -16,10 +16,14 @@ class Add:
         controllerInstance = LocalPyPIController()
 
         controllerInstance.parseScriptArguments(args)
-        controllerInstance.initLocalRepo()
+        
+        if controllerInstance.validPackageName():
+            controllerInstance.initLocalRepo()
 
-        needToAddPackage: bool = controllerInstance.canAddNewPackage()
-        if needToAddPackage:
-            controllerInstance.addPackage()
+            needToAddPackage: bool = controllerInstance.canAddNewPackage()
+            if needToAddPackage:
+                controllerInstance.addPackage()
+            else:
+                print("Package " + controllerInstance.packageName + " has been already added to the local repository. Try to run the 'update' command instead to synchronize changes with the remote PyPI.")
         else:
-            print("Package " + controllerInstance.packageName + " has been already added to the local repository. Try to run the 'update' command instead to synchronize changes with the remote PyPI.")
+            print("Package " + controllerInstance.packageName + " does not exist in the remote repository (" + controllerInstance.remotePyPIRepository + ")")
