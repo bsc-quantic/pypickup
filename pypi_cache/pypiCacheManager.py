@@ -114,7 +114,7 @@ class LocalPyPIController:
     ### 'Add' command methods ###
 
     def __initRegexs(self):
-        self._regexZIPAndTars = "^(" + self.packageName + ".*)\.(zip|tar.gz)$"
+        self._regexZIPAndTars = "^(.*)\.(zip|tar.gz)$"
 
     def parseScriptArguments(self, args: argparse.ArgumentParser):
         """Parse the incoming arguments. A packageName and and pypiLocalPath are expected. Besides, it initializes derived class attributes."""
