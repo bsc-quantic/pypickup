@@ -26,7 +26,7 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["pypi_cache", "pypi_cache.cmd", "pypi_cache.settings"]
+packages = ["pypi_cache", "pypi_cache.cmd", "pypi_cache.settings", "pypi_cache.utils"]
 
 [project.urls]
 "Homepage" = "https://github.com/UB-Quantic/pypi-cache"
