@@ -1,5 +1,4 @@
 #! /usr/bin/python
-from fileinput import filelineno
 from io import TextIOWrapper
 import os
 
@@ -69,12 +68,8 @@ class LocalPyPIController:
 
     ### Common methods ###
 
-    def __writeFileFromTheStart(self, file: TextIOWrapper, textToWrite: str):
-        file.seek(0)
-        file.truncate(0)
-        file.write(textToWrite)
-
     def __getLink(self, linkURL: str) -> Tuple[bool, str, bytes]:
+        response: requests.Response = requests.Response()
         try:
             response = requests.get(linkURL)
             response.raise_for_status()
@@ -89,7 +84,18 @@ class LocalPyPIController:
 
         return True, "200 OK", response.content
 
-    def __downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str = "", addPackageFilesToIndex: bool = False) -> str:
+    def __writeFileFromTheStart(self, file: TextIOWrapper, textToWrite: str):
+        file.seek(0)
+        file.truncate(0)
+        file.write(textToWrite)
+
+    def __addPackageToIndex(self, indexHTML: str, file: TextIOWrapper, href: str, entryText: str) -> str:
+        _, updatedHTML = self._htmlManager.insertHTMLEntry(indexHTML, "a", {"href": href}, entryText)
+        self.__writeFileFromTheStart(file, updatedHTML)
+
+        return updatedHTML
+
+    def __downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str, file: TextIOWrapper):
         updatedHTML: str = indexHTML
 
         if len(packagesToDownload) == 0:
@@ -109,8 +115,7 @@ class LocalPyPIController:
                 with open(self.packageLocalFileName + fileName, "wb") as f:
                     f.write(content)
 
-                if addPackageFilesToIndex:
-                    _, updatedHTML = self._htmlManager.insertHTMLEntry(updatedHTML, "a", {"href": fileLink}, fileName)
+                updatedHTML = self.__addPackageToIndex(updatedHTML, file, fileLink, fileName)
 
                 actuallyDownloadedPackages += 1
 
@@ -118,8 +123,6 @@ class LocalPyPIController:
 
         print()
         print(str(actuallyDownloadedPackages) + "/" + str(len(packagesToDownload)) + " downloaded.")
-
-        return updatedHTML
 
     ### 'Add' command methods ###
 
@@ -142,8 +145,9 @@ class LocalPyPIController:
     def validPackageName(self) -> bool:
         """Checks whether the package link exists or not. If not, it returns False. True otherwise."""
 
-        ok, _, _ = self.__getLink(self._remotePypiBaseDir + self.packageName)
+        ok, status, _ = self.__getLink(self._remotePypiBaseDir + self.packageName)
         if not ok:
+            print(status)
             return False
 
         return True
@@ -176,6 +180,7 @@ class LocalPyPIController:
 
         needToDownloadFiles: bool = False
         if not entryAlreadyExists:
+            # ToDo: refactor these lines with the method __writeFileFromTheStart()
             baseHTML_file.seek(0)
             baseHTML_file.truncate()
             baseHTML_file.write(htmlUpdated)
@@ -204,13 +209,14 @@ class LocalPyPIController:
             pypiPackageHTMLStr: str = pypiPackageHTML.decode("utf-8")
 
         pypiPackageHTMLStr = self._htmlManager.filterInHTML(pypiPackageHTMLStr, self._regexZIPAndTars, self.packageName, self.onlySources)
-        packageHTML_file = open(self.packageLocalFileName + self._packageHTMLFileName, "w")
-        packageHTML_file.write(pypiPackageHTMLStr)
-        packageHTML_file.close()
-
         linksToDownload: Dict[str, str] = self._htmlManager.getHRefsList(pypiPackageHTMLStr)
 
-        self.__downloadFilesInLocalPath(linksToDownload)
+        packageBaseHTML: str = self._htmlManager.getBaseHTML()
+        _, packageBaseHTML = self._htmlManager.insertHTMLEntry(packageBaseHTML, "h1", {}, "Links for " + self.packageName)
+        with open(self.packageLocalFileName + self._packageHTMLFileName, "w") as packageHTML_file:
+            packageHTML_file.write(packageBaseHTML)
+
+            self.__downloadFilesInLocalPath(linksToDownload, packageBaseHTML, packageHTML_file)
 
     ### 'Update' command methods ###
 
@@ -252,10 +258,6 @@ class LocalPyPIController:
 
         return resultingDict
 
-    def __overwritePackageIndexFile(self, textToWrite: str):
-        with open(self.packageLocalFileName + self._packageHTMLFileName, "r+") as pypiLocalIndexFile:
-            self.__writeFileFromTheStart(pypiLocalIndexFile, textToWrite)
-
     def synchronizeWithRemote(self):
         """Synchronize the self.packageName against the PyPI remote repository. It adds the new available packages to the packageName/index.html and download them. Assumes the folders exists."""
 
@@ -275,6 +277,5 @@ class LocalPyPIController:
         localIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiLocalIndex)
         newPackagesToDownload: Dict[str, str] = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
 
-        pypiLocalIndexUpdated = self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, True)
-
-        self.__overwritePackageIndexFile(pypiLocalIndexUpdated)
+        with open(self.packageLocalFileName + self._packageHTMLFileName, "w") as pypiLocalIndexFile:
+            self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, pypiLocalIndexFile)
