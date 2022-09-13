@@ -69,6 +69,8 @@ class LocalPyPIController:
     ### Common methods ###
 
     def __getLink(self, linkURL: str) -> Tuple[bool, str, bytes]:
+        # ToDo: implement a retry/resume feature in case the requests.get() fails. add a new param for the number of retries
+
         response: requests.Response = requests.Response()
         try:
             response = requests.get(linkURL)
@@ -107,7 +109,6 @@ class LocalPyPIController:
         actuallyDownloadedPackages: int = 0
         for fileName, fileLink in packagesToDownload.items():
             print("Downloading package #" + str(packageCounter) + ": '" + fileName + "'...")
-            # ToDo: implement a retry/resume feature in case the .urlretrieve fails
             ok, status, content = self.__getLink(fileLink)
             if not ok:
                 print("Error downloading link: " + fileLink + " (status: " + status + ")")
@@ -180,10 +181,7 @@ class LocalPyPIController:
 
         needToDownloadFiles: bool = False
         if not entryAlreadyExists:
-            # ToDo: refactor these lines with the method __writeFileFromTheStart()
-            baseHTML_file.seek(0)
-            baseHTML_file.truncate()
-            baseHTML_file.write(htmlUpdated)
+            self.__writeFileFromTheStart(baseHTML_file, htmlUpdated)
 
             needToDownloadFiles = True
 
