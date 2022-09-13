@@ -21,14 +21,14 @@ class LocalPyPIController:
     _packageHTMLFileName: str = "index.html"
     _remotePypiBaseDir: str = "https://pypi.org/simple/"
 
+    _regexZIPAndTars = "^(.*)\.(zip|tar.gz|tar.bz2|tar.xz|tar.Z|tar)$"
+
     def __init__(self):
         self._packageName: str
         self._onlySources: bool
         self._pypiLocalPath: str
 
         self._packageLocalFileName: str
-
-        self._regexZIPAndTars: str
 
     @property
     def packageName(self):
@@ -127,9 +127,6 @@ class LocalPyPIController:
 
     ### 'Add' command methods ###
 
-    def __initRegexs(self):
-        self._regexZIPAndTars = "^(.*)\.(zip|tar.gz|tar.bz2|tar.xz|tar.Z|tar)$"
-
     def parseScriptArguments(self, args: argparse.ArgumentParser):
         """Parse the incoming arguments. A packageName and and pypiLocalPath are expected. Besides, it initializes derived class attributes."""
 
@@ -140,8 +137,6 @@ class LocalPyPIController:
         self.pypiLocalPath = self.pypiLocalPath.replace("\\", "/")
 
         self.packageLocalFileName = os.path.join(self.pypiLocalPath, self.packageName) + "/"
-
-        self.__initRegexs()
 
     def validPackageName(self) -> bool:
         """Checks whether the package link exists or not. If not, it returns False. True otherwise."""
