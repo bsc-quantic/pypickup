@@ -3,8 +3,10 @@ from io import TextIOWrapper
 import os
 
 import argparse
-import requests
+import time
 from typing import Tuple, Dict
+
+import requests
 
 from pypi_cache.utils.htmlManager import HTMLManager
 
@@ -68,21 +70,29 @@ class LocalPyPIController:
 
     ### Common methods ###
 
-    def __getLink(self, linkURL: str) -> Tuple[bool, str, bytes]:
+    def __getLink(self, linkURL: str, retries: int = 10, timeBetweenRetries: float = 0.5) -> Tuple[bool, str, bytes]:
         # ToDo: implement a retry/resume feature in case the requests.get() fails. add a new param for the number of retries
 
         response: requests.Response = requests.Response()
-        try:
-            response = requests.get(linkURL)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as errh:
-            return False, "HTTP Error: " + str(errh), response.content
-        except requests.exceptions.ConnectionError as errc:
-            return False, "Error Connecting: " + str(errc), response.content
-        except requests.exceptions.Timeout as errt:
-            return False, "Timeout Error: " + str(errt), response.content
-        except requests.exceptions.RequestException as err:
-            return False, "OOps: Something Else: " + str(err), response.content
+        for _ in range(retries - 1):
+            try:
+                response = requests.get(linkURL, timeout=5)
+            except:
+                print("Trying again...\t(" + linkURL + ")")
+                time.sleep(timeBetweenRetries)
+        
+        if response.status_code != 200:
+            try:
+                response = requests.get(linkURL, timeout=5)
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as errh:
+                return False, "HTTP Error: " + str(errh), response.content
+            except requests.exceptions.ConnectionError as errc:
+                return False, "Error Connecting: " + str(errc), response.content
+            except requests.exceptions.Timeout as errt:
+                return False, "Timeout Error: " + str(errt), response.content
+            except requests.exceptions.RequestException as err:
+                return False, "OOps: Something Else: " + str(err), response.content
 
         return True, "200 OK", response.content
 
@@ -111,7 +121,7 @@ class LocalPyPIController:
             print("Downloading package #" + str(packageCounter) + ": '" + fileName + "'...")
             ok, status, content = self.__getLink(fileLink)
             if not ok:
-                print("Error downloading link: " + fileLink + " (status: " + status + ")")
+                print("\nUNABLE TO DOWNLOAD PACKAGE '" + fileName + "' (URL: " + fileLink + ")\n\tSTATUS: " + status + "\n")
             else:
                 with open(self.packageLocalFileName + fileName, "wb") as f:
                     f.write(content)
