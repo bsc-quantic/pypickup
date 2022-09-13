@@ -71,8 +71,6 @@ class LocalPyPIController:
     ### Common methods ###
 
     def __getLink(self, linkURL: str, retries: int = 10, timeBetweenRetries: float = 0.5) -> Tuple[bool, str, bytes]:
-        # ToDo: implement a retry/resume feature in case the requests.get() fails. add a new param for the number of retries
-
         response: requests.Response = requests.Response()
         for _ in range(retries - 1):
             try:
@@ -113,7 +111,7 @@ class LocalPyPIController:
         if len(packagesToDownload) == 0:
             print("No new packages in the remote to download.")
         else:
-            print(str(len(packagesToDownload)) + " new packages available.")
+            print(str(len(packagesToDownload)) + " new packages available in the remote.")
 
         packageCounter: int = 1
         actuallyDownloadedPackages: int = 0
