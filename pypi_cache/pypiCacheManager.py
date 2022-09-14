@@ -124,7 +124,7 @@ class LocalPyPIController:
                 with open(self.packageLocalFileName + fileName, "wb") as f:
                     f.write(content)
 
-                updatedHTML = self.__addPackageToIndex(updatedHTML, file, fileLink, fileName)
+                updatedHTML = self.__addPackageToIndex(updatedHTML, file, "./" + fileName, fileName)
 
                 actuallyDownloadedPackages += 1
 
