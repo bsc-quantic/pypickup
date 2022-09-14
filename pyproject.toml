@@ -4,9 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pypi-cache"
-version = "0.0.2"
+version = "0.1.0"
 authors = [
   { name="German Navarro", email="ge.najim@gmail.com" },
+  { name="Sergio Sánchez Ramírez", email="sergio.sanchez.ramirez@bsc.es" },
 ]
 description = "An utility to generate a local PyPI cache for selected packages based on the PyPI.org repositories."
 readme = "README.md"
