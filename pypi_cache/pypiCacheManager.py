@@ -72,14 +72,23 @@ class LocalPyPIController:
 
     def __getLink(self, linkURL: str, retries: int = 10, timeBetweenRetries: float = 0.5) -> Tuple[bool, str, bytes]:
         response: requests.Response = requests.Response()
-        for _ in range(retries - 1):
+        again: bool = True
+        while again:
+            retries -= 1
+            if retries == 0: break
+
             try:
                 response = requests.get(linkURL, timeout=5)
+
+                again = False
             except:
+                again = True
+
                 print("Trying again...\t(" + linkURL + ")")
                 time.sleep(timeBetweenRetries)
         
         if response.status_code != 200:
+            print("Last try on...\t(" + linkURL + ")")
             try:
                 response = requests.get(linkURL, timeout=5)
                 response.raise_for_status()
