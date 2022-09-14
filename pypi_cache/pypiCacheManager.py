@@ -70,6 +70,17 @@ class LocalPyPIController:
 
     ### Common methods ###
 
+    def parseScriptArguments(self, args: argparse.ArgumentParser):
+        """Parse the incoming arguments. A packageName and and pypiLocalPath are expected. Besides, it initializes derived class attributes."""
+
+        self.packageName = args.packageName
+        self.onlySources = args.onlySources
+        self.pypiLocalPath = args.pypiLocalPath
+
+        self.pypiLocalPath = self.pypiLocalPath.replace("\\", "/")
+
+        self.packageLocalFileName = os.path.join(self.pypiLocalPath, self.packageName) + "/"
+
     def __getLink(self, linkURL: str, retries: int = 10, timeBetweenRetries: float = 0.5) -> Tuple[bool, str, bytes]:
         response: requests.Response = requests.Response()
         again: bool = True
@@ -143,17 +154,6 @@ class LocalPyPIController:
         print(str(actuallyDownloadedPackages) + "/" + str(len(packagesToDownload)) + " downloaded.")
 
     ### 'Add' command methods ###
-
-    def parseScriptArguments(self, args: argparse.ArgumentParser):
-        """Parse the incoming arguments. A packageName and and pypiLocalPath are expected. Besides, it initializes derived class attributes."""
-
-        self.packageName = args.packageName
-        self.onlySources = args.onlySources
-        self.pypiLocalPath = args.pypiLocalPath
-
-        self.pypiLocalPath = self.pypiLocalPath.replace("\\", "/")
-
-        self.packageLocalFileName = os.path.join(self.pypiLocalPath, self.packageName) + "/"
 
     def validPackageName(self) -> bool:
         """Checks whether the package link exists or not. If not, it returns False. True otherwise."""
@@ -287,5 +287,5 @@ class LocalPyPIController:
         localIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiLocalIndex)
         newPackagesToDownload: Dict[str, str] = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
 
-        with open(self.packageLocalFileName + self._packageHTMLFileName, "w") as pypiLocalIndexFile:
+        with open(self.packageLocalFileName + self._packageHTMLFileName, "r+") as pypiLocalIndexFile:
             self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, pypiLocalIndexFile)
