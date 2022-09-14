@@ -231,9 +231,13 @@ class LocalPyPIController:
     ### 'Update' command methods ###
 
     def isAlreadyAdded(self) -> bool:
-        """Returns whether the self._packageName already exists in the self._pypiLocalPath."""
+        """Returns whether the self._packageName already exists in the self._pypiLocalPath. If the local repository has not even created previously, returns False."""
 
-        indexHTMLFile = open(self.pypiLocalPath + "/" + self._baseHTMLFileName, "r")
+        packageIndexFileName: str = os.path.join(self.pypiLocalPath, self._baseHTMLFileName)
+        if not os.path.exists(packageIndexFileName):
+            return False
+
+        indexHTMLFile = open(packageIndexFileName, "r")
         baseHTMLStr: str = indexHTMLFile.read()
 
         packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(baseHTMLStr)
