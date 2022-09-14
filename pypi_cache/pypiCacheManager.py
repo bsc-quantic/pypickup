@@ -27,8 +27,11 @@ class LocalPyPIController:
 
     def __init__(self):
         self._packageName: str
-        self._onlySources: bool
         self._pypiLocalPath: str
+
+        self._onlySources: bool
+        self._includeDevs: bool
+        self._includeRCs: bool
 
         self._packageLocalFileName: str
 
@@ -37,12 +40,20 @@ class LocalPyPIController:
         return self._packageName
 
     @property
+    def pypiLocalPath(self):
+        return self._pypiLocalPath
+
+    @property
     def onlySources(self):
         return self._onlySources
 
     @property
-    def pypiLocalPath(self):
-        return self._pypiLocalPath
+    def includeDevs(self):
+        return self._includeDevs
+
+    @property
+    def includeRCs(self):
+        return self._includeRCs
 
     @property
     def packageLocalFileName(self):
@@ -56,13 +67,21 @@ class LocalPyPIController:
     def packageName(self, new_PackageName: str):
         self._packageName = new_PackageName
 
+    @pypiLocalPath.setter
+    def pypiLocalPath(self, new_PyPiLocalPath: str):
+        self._pypiLocalPath = new_PyPiLocalPath
+
     @onlySources.setter
     def onlySources(self, new_onlySources: bool):
         self._onlySources = new_onlySources
 
-    @pypiLocalPath.setter
-    def pypiLocalPath(self, new_PyPiLocalPath: str):
-        self._pypiLocalPath = new_PyPiLocalPath
+    @includeDevs.setter
+    def includeDevs(self, new_includeDevs: bool):
+        self._includeDevs = new_includeDevs
+
+    @includeRCs.setter
+    def includeRCs(self, new_includeRCs: bool):
+        self._includeRCs = new_includeRCs
 
     @packageLocalFileName.setter
     def packageLocalFileName(self, new_PackageLocalFileName: str):
@@ -74,12 +93,19 @@ class LocalPyPIController:
         """Parse the incoming arguments. A packageName and and pypiLocalPath are expected. Besides, it initializes derived class attributes."""
 
         self.packageName = args.packageName
-        self.onlySources = args.onlySources
         self.pypiLocalPath = args.pypiLocalPath
+
+        self.onlySources = args.onlySources
+        self.includeDevs = args.includeDevs
+        self.includeRCs = args.includeRCs
 
         self.pypiLocalPath = self.pypiLocalPath.replace("\\", "/")
 
         self.packageLocalFileName = os.path.join(self.pypiLocalPath, self.packageName) + "/"
+
+        if (self.includeDevs or self.includeRCs) and self._htmlManager.areWheelFiltersEnabled():
+            print("\tWARNING! Development releases (devX) or release candidates (RCs) flags are enabled, as well as the wheel filters, so they could be discarded anyway. This is caused because of the order of application: (1st) flags, (2nd) wheel filters.")
+            print("\tPLEASE, CHECK OUT YOUR WHEEL FILTERS.")
 
     def __getLink(self, linkURL: str, retries: int = 10, timeBetweenRetries: float = 0.5) -> Tuple[bool, str, bytes]:
         response: requests.Response = requests.Response()
@@ -218,7 +244,7 @@ class LocalPyPIController:
         else:
             pypiPackageHTMLStr: str = pypiPackageHTML.decode("utf-8")
 
-        pypiPackageHTMLStr = self._htmlManager.filterInHTML(pypiPackageHTMLStr, self._regexZIPAndTars, self.packageName, self.onlySources)
+        pypiPackageHTMLStr = self._htmlManager.filterInHTML(pypiPackageHTMLStr, self._regexZIPAndTars, self.packageName, self.onlySources, self.includeDevs, self.includeRCs)
         linksToDownload: Dict[str, str] = self._htmlManager.getHRefsList(pypiPackageHTMLStr)
 
         packageBaseHTML: str = self._htmlManager.getBaseHTML()
@@ -231,7 +257,7 @@ class LocalPyPIController:
     ### 'Update' command methods ###
 
     def isAlreadyAdded(self) -> bool:
-        """Returns whether the self._packageName already exists in the self._pypiLocalPath. If the local repository has not even created previously, returns False."""
+        """Returns whether the self._packageName already exists in the self._pypiLocalPath. If the local repository has not even been created previously, returns False."""
 
         packageIndexFileName: str = os.path.join(self.pypiLocalPath, self._baseHTMLFileName)
         if not os.path.exists(packageIndexFileName):
@@ -284,7 +310,7 @@ class LocalPyPIController:
         with open(self.packageLocalFileName + self._packageHTMLFileName, "r") as pypiLocalIndexFile:
             pypiLocalIndex: str = pypiLocalIndexFile.read()
 
-        pypiRemoteIndexFiltered: str = self._htmlManager.filterInHTML(pypiRemoteIndexStr, self._regexZIPAndTars, self.packageName, self.onlySources)
+        pypiRemoteIndexFiltered: str = self._htmlManager.filterInHTML(pypiRemoteIndexStr, self._regexZIPAndTars, self.packageName, self.onlySources, self.includeDevs, self.includeRCs)
 
         # ToDo: fix the bug happening if the local repo hast the wheels&src but the update method has enabled the -s option which means we only want the source. the warning message would not apply yet
         remoteIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiRemoteIndexFiltered)

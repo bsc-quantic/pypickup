@@ -35,6 +35,9 @@ class WheelsManager:
     def packageName(self, new_wheelsConfig: str):
         self._wheelsConfig = new_wheelsConfig
 
+    def areWheelFiltersEnabled(self) -> bool:
+        return self._wheelsConfig.filtersEnabled == "yes"
+
     def __getSimplifiedPythonVersionFromFilterFormat(self, pythonVersionInFilterFormat: str) -> str:
         simplifiedPythonVersion: str = pythonVersionInFilterFormat.replace(".", "")
 
@@ -197,6 +200,9 @@ class HTMLManager:
     def getBaseHTML(self) -> str:
         return self._baseHTML_fromScratch
 
+    def areWheelFiltersEnabled(self) -> bool:
+        return self._wheelsManager.areWheelFiltersEnabled()
+
     def __getElementContentInlined(self, htmlString: str, element: str) -> str:
         """Gets inlined the specified 'element' from the 'htmlString', returning a new HTML string."""
 
@@ -248,13 +254,20 @@ class HTMLManager:
             if not aEntry is None:
                 aEntriesOutput.append(aEntry)
 
-    def filterInHTML(self, htmlContent: str, regexZIPAndTars: str, packageName: str, onlySources: bool) -> str:
+    def __isDevFile(self, fileName: str) -> bool:
+        if re.search(rf"\.dev\d+", fileName):
+            return True
+        return False
+
+    def __isRCFile(self, fileName: str) -> bool:
+        if re.search(rf"\d+rc\d+", fileName):
+            return True
+        return False
+
+    def filterInHTML(self, htmlContent: str, regexZIPAndTars: str, packageName: str, onlySources: bool, includeDevs: bool, includeRCs: bool) -> str:
         """Keeps <a> entries in 'htmlContent' that are .whl or zip (or tar.gz, in case it doesn't exists a homonym .zip). The wheel must follow a particular set of rules. The ones that do not match any are filtered out."""
 
         outputSoup = BeautifulSoup(self._baseHTML_fromScratch, "html.parser")
-        # headEntry = outputSoup.new_tag("h1")
-        # headEntry.string = "Links for " + packageName
-        # outputSoup.html.body.append(headEntry)
 
         zipAndTarsDict: Dict[str, str] = dict()
 
@@ -263,6 +276,10 @@ class HTMLManager:
 
         aEntriesOutput: List[bs4Element.Tag] = list()
         for aEntry in aEntries:
+            if (self.__isDevFile(aEntry.string) and not includeDevs) or (self.__isRCFile(aEntry.string) and not includeRCs):
+                print("hey " + str(aEntry.string))
+                continue
+
             if not onlySources and self._wheelsManager.isValidWheel(aEntry.string):
                 aEntriesOutput.append(aEntry)
             else:
