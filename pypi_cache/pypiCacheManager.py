@@ -119,25 +119,31 @@ class LocalPyPIController:
             print("\tWARNING! Development releases (devX) or release candidates (RCs) flags are enabled, as well as the wheel filters, so they could be discarded anyway. This is caused because of the order of application: (1st) flags, (2nd) wheel filters.")
             print("\tPLEASE, CHECK OUT YOUR WHEEL FILTERS.")
 
-    def __getLink(self, linkURL: str, retries: int = 10, timeBetweenRetries: float = 0.5) -> Tuple[bool, str, bytes]:
+    def __getLink(self, linkURL: str, verbose: bool = True, retries: int = 10, timeBetweenRetries: float = 0.5) -> Tuple[bool, str, bytes]:
         response: requests.Response = requests.Response()
+
+        retriesCounter: int = retries
         again: bool = True
         while again:
-            retries -= 1
-            if retries == 0: break
+            retriesCounter -= 1
+            if retriesCounter == 0: break
 
             try:
                 response = requests.get(linkURL, timeout=5)
+                response.raise_for_status()
 
                 again = False
             except:
                 again = True
 
-                print("Trying again...\t(" + linkURL + ")")
+                if verbose: 
+                    print("Trying again...\t(" + linkURL + ")")
                 time.sleep(timeBetweenRetries)
         
         if response.status_code != 200:
-            print("Last try on...\t(" + linkURL + ")")
+            if retries > 1 and verbose:
+                print("Last try on...\t(" + linkURL + ")")
+
             try:
                 response = requests.get(linkURL, timeout=5)
                 response.raise_for_status()
@@ -196,7 +202,7 @@ class LocalPyPIController:
     def validPackageName(self) -> bool:
         """Checks whether the package link exists or not. If not, it returns False. True otherwise."""
 
-        ok, status, _ = self.__getLink(self._remotePypiBaseDir + self.packageName)
+        ok, status, _ = self.__getLink(self._remotePypiBaseDir + self.packageName, False)
         if not ok:
             print(status)
             return False
