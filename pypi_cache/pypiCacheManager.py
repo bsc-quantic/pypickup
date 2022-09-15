@@ -34,6 +34,7 @@ class LocalPyPIController:
         self._includeRCs: bool
         self._includePlatformSpecific: bool
 
+        self._baseHTMLFilePath: str
         self._packageLocalFileName: str
 
     @property
@@ -63,6 +64,10 @@ class LocalPyPIController:
     @property
     def packageLocalFileName(self):
         return self._packageLocalFileName
+
+    @property
+    def baseHTMLFilePath(self):
+        return self._baseHTMLFilePath
 
     @property
     def remotePyPIRepository(self):
@@ -96,6 +101,10 @@ class LocalPyPIController:
     def packageLocalFileName(self, new_PackageLocalFileName: str):
         self._packageLocalFileName = new_PackageLocalFileName
 
+    @baseHTMLFilePath.setter
+    def baseHTMLFilePath(self, new_baseHTMLFilePath: str):
+        self._baseHTMLFilePath = new_baseHTMLFilePath
+
     ### Common methods ###
 
     def parseScriptArguments(self, args: argparse.ArgumentParser):
@@ -111,6 +120,8 @@ class LocalPyPIController:
 
         self.pypiLocalPath = self.pypiLocalPath.replace("\\", "/")
 
+        # ToDo: refactor these 2 following names
+        self.baseHTMLFilePath = os.path.join(self.pypiLocalPath, self._baseHTMLFileName)
         self.packageLocalFileName = os.path.join(self.pypiLocalPath, self.packageName) + "/"
 
         self._htmlManager.setFlags(self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific)
@@ -223,11 +234,10 @@ class LocalPyPIController:
         self.__createDirIfNeeded(self.pypiLocalPath)
         self.__createDirIfNeeded(self.packageLocalFileName)
 
-        baseHTMLFilePath: str = self.pypiLocalPath + "/" + self._baseHTMLFileName
-        self.__createBaseHTMLFileIfNeeded(baseHTMLFilePath)
+        self.__createBaseHTMLFileIfNeeded(self.baseHTMLFilePath)
 
-    def __addEntryToBaseHTMLFile(self, baseHTMLFilePath: str) -> bool:
-        baseHTML_file = open(baseHTMLFilePath, "r+")
+    def __addEntryToBaseHTMLFile(self) -> bool:
+        baseHTML_file = open(self.baseHTMLFilePath, "r+")
         htmlContent: str = baseHTML_file.read()
 
         if len(htmlContent) == 0:
@@ -248,8 +258,7 @@ class LocalPyPIController:
     def canAddNewPackage(self) -> bool:
         """Adds the self.packageName package to the base HTML index, if not exists already. If it does, it returns False, True otherwise."""
 
-        baseHTMLFilePath: str = self.pypiLocalPath + "/" + self._baseHTMLFileName
-        needToDownloadFiles: bool = self.__addEntryToBaseHTMLFile(baseHTMLFilePath)
+        needToDownloadFiles: bool = self.__addEntryToBaseHTMLFile()
 
         return needToDownloadFiles
 
@@ -277,11 +286,10 @@ class LocalPyPIController:
     def isAlreadyAdded(self) -> bool:
         """Returns whether the self._packageName already exists in the self._pypiLocalPath. If the local repository has not even been created previously, returns False."""
 
-        packageIndexFileName: str = os.path.join(self.pypiLocalPath, self._baseHTMLFileName)
-        if not os.path.exists(packageIndexFileName):
+        if not os.path.exists(self.baseHTMLFilePath):
             return False
 
-        indexHTMLFile = open(packageIndexFileName, "r")
+        indexHTMLFile = open(self.baseHTMLFilePath, "r")
         baseHTMLStr: str = indexHTMLFile.read()
 
         packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(baseHTMLStr)
