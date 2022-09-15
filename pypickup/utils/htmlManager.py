@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup, element as bs4Element
 import wheel_filename
 from multimethod import multimethod
 
-from pypi_cache.settings.wheelFilters import WheelsConfig
+from pypickup.settings.wheelFilters import WheelsConfig
 
 
 class WheelsManager:

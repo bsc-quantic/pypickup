@@ -3,9 +3,9 @@ from importlib.metadata import entry_points
 
 
 def cli():
-    entrypoints = entry_points()["pypi_cache.cmd"]
+    entrypoints = entry_points()["pypickup.cmd"]
 
-    parser = argparse.ArgumentParser(prog="pypi-cache", description="Manage a local offline PyPi mirror")
+    parser = argparse.ArgumentParser(prog="pypickup", description="Manage a local offline PyPi mirror")
     subparsers = parser.add_subparsers(help="available commands", dest="cmd")
 
     plugins = {}

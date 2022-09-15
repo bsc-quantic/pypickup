@@ -3,19 +3,9 @@ filtersEnabled_wheels = "no"
 inOrOut_wheels = "out"
 
 # ToDo: "(python_tags>=1.2 | python_tags==1.01) & version>=18.0 & #^cp\d*d-\d*.whl$ | #^cp\d*d-manylinux14.whl$"
-inFilters_wheels = {
-    "version": [],
-    "python_tags": [">=3.5"],
-    "abi_tags": ["~cp36", "~cp37"],
-    "platform_tags": ["~manylinux", "~win32", "~amd64"]
-}
+inFilters_wheels = {"version": [], "python_tags": [">=3.5"], "abi_tags": ["~cp36", "~cp37"], "platform_tags": ["~manylinux", "~win32", "~amd64"]}
 
-outFilters_wheels = {
-    "version": ["~rc"],
-    "python_tags": ["~pp", "~cp2", "<3.5"],
-    "abi_tags": ["~mu"],
-    "platform_tags": ["~i686", "~win32"]
-}
+outFilters_wheels = {"version": ["~rc"], "python_tags": ["~pp", "~cp2", "<3.5"], "abi_tags": ["~mu"], "platform_tags": ["~i686", "~win32"]}
 
 # Attributes lists (https://peps.python.org/pep-0425/):
 # version: rc[X]
@@ -27,10 +17,11 @@ outFilters_wheels = {
 
 from typing import Dict, List
 
+
 class WheelsConfig:
 
     """
-    A class to save the configuration for the PyPI-cache commands.
+    A class to save the configuration for the pypickup commands.
 
     The user can choose between filtering wheels in or out. If self.inOrOut == "in", the expected logic is that all packages will not be considere by
     default, only if they match with the specified expressions. If self.inOurOut == "out", then all the packages will be included by default and only

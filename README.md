@@ -1,4 +1,4 @@
-# PyPI-cache utility
+# pypickup
 
 An utility to download packages from PyPI and save them locally, building a tree as if it were the PyPI repository itself.
 
@@ -20,19 +20,19 @@ pip install --editable .
 An -h flag can be used on any command to display all the available options and its usage. For instance:
 
 ```
-pypi-cache add -h
+pypickup add -h
 ```
 
 To add a package for the first time:
 
 ```
-pypi-cache add numpy
+pypickup add numpy
 ```
 
-This will create a folder in the default location (~/.pypi-cache/) in which all the stablished files (.whl and .zip) for the specified package will be downloaded. Besides, it will create the corresponding metadata files (index.html) to track that package. The next time you want to synchronize the same package against the PyPI remote repository, you should do:
+This will create a folder in the default location (~/.pypickup/) in which all the stablished files (.whl and .zip) for the specified package will be downloaded. Besides, it will create the corresponding metadata files (index.html) to track that package. The next time you want to synchronize the same package against the PyPI remote repository, you should do:
 
 ```
-pypi-cache update numpy
+pypickup update numpy
 ```
 
 This will download the new packages available in the remote, in case there is any. It'll do nothing otherwise. It also updates the index.html of the indicated package with the new downloaded packages, as expected.
@@ -40,13 +40,13 @@ This will download the new packages available in the remote, in case there is an
 2 more commands are available to remove packages and to list the available ones already added:
 
 ```
-pypi-cache rm numpy
+pypickup rm numpy
 
-pypi-cache list
+pypickup list
 ```
 
 If we specify a package for the 'list' command, it will show a list of the downloaded distributions themselves.
 
 ```
-pypi-cache list numpy
+pypickup list numpy
 ```

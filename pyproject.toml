@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pypi-cache"
+name = "pypickup"
 version = "0.1.0"
 authors = [
   { name="German Navarro", email="ge.najim@gmail.com" },
@@ -27,18 +27,18 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["pypi_cache", "pypi_cache.cmd", "pypi_cache.settings", "pypi_cache.utils"]
+packages = ["pypickup", "pypickup.cmd", "pypickup.settings", "pypickup.utils"]
 
 [project.urls]
-"Homepage" = "https://github.com/UB-Quantic/pypi-cache"
+"Homepage" = "https://github.com/UB-Quantic/pypickup"
 
 [project.scripts]
-pypi-cache = "pypi_cache.cli:cli"
+pypickup = "pypickup.cli:cli"
 
-[project.entry-points."pypi_cache.cmd"]
-add = "pypi_cache.cmd:Add"
-update = "pypi_cache.cmd:Update"
-rm = "pypi_cache.cmd:Remove"
+[project.entry-points."pypickup.cmd"]
+add = "pypickup.cmd:Add"
+update = "pypickup.cmd:Update"
+rm = "pypickup.cmd:Remove"
 
 [tool.black]
 line-length = 1000

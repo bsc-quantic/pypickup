@@ -8,7 +8,7 @@ from typing import Tuple, Dict
 
 import requests
 
-from pypi_cache.utils.htmlManager import HTMLManager
+from pypickup.utils.htmlManager import HTMLManager
 
 
 class LocalPyPIController:
@@ -150,7 +150,7 @@ class LocalPyPIController:
                 if verbose: 
                     print("Trying again...\t(" + linkURL + ")")
                 time.sleep(timeBetweenRetries)
-        
+
         if response.status_code != 200:
             if retries > 1 and verbose:
                 print("Last try on...\t(" + linkURL + ")")
