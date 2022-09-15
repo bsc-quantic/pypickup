@@ -1,8 +1,10 @@
+from fileinput import filename
 import os
 
 import re
 
 from typing import Tuple, Dict, List
+from xml.etree.ElementInclude import include
 
 from bs4 import BeautifulSoup, element as bs4Element
 import wheel_filename
@@ -195,13 +197,54 @@ class HTMLManager:
     """
 
     def __init__(self):
-        return None
+        self._onlySources: bool
+        self._includeDevs: bool
+        self._includeRCs: bool
+        self._includePlatformSpecific: bool
 
-    def getBaseHTML(self) -> str:
-        return self._baseHTML_fromScratch
+    @property
+    def onlySources(self):
+        return self._onlySources
+
+    @property
+    def includeDevs(self):
+        return self._includeDevs
+
+    @property
+    def includeRCs(self):
+        return self._includeRCs
+
+    @property
+    def includePlatformSpecific(self):
+        return self._includePlatformSpecific
+
+    @onlySources.setter
+    def onlySources(self, new_onlySources: bool):
+        self._onlySources = new_onlySources
+
+    @includeDevs.setter
+    def includeDevs(self, new_includeDevs: bool):
+        self._includeDevs = new_includeDevs
+
+    @includeRCs.setter
+    def includeRCs(self, new_includeRCs: bool):
+        self._includeRCs = new_includeRCs
+
+    @includePlatformSpecific.setter
+    def includePlatformSpecific(self, new_includePlatformSpecific: bool):
+        self._includePlatformSpecific = new_includePlatformSpecific
+
+    def setFlags(self, onlySources: bool, includeDevs: bool, includeRCs: bool, includePlatformSpecific: bool):
+        self.onlySources = onlySources
+        self.includeDevs = includeDevs
+        self.includeRCs = includeRCs
+        self.includePlatformSpecific = includePlatformSpecific
 
     def areWheelFiltersEnabled(self) -> bool:
         return self._wheelsManager.areWheelFiltersEnabled()
+
+    def getBaseHTML(self) -> str:
+        return self._baseHTML_fromScratch
 
     def __getElementContentInlined(self, htmlString: str, element: str) -> str:
         """Gets inlined the specified 'element' from the 'htmlString', returning a new HTML string."""
@@ -264,8 +307,22 @@ class HTMLManager:
             return True
         return False
 
-    def filterInHTML(self, htmlContent: str, regexZIPAndTars: str, packageName: str, onlySources: bool, includeDevs: bool, includeRCs: bool) -> str:
-        """Keeps <a> entries in 'htmlContent' that are .whl or zip (or tar.gz, in case it doesn't exists a homonym .zip). The wheel must follow a particular set of rules. The ones that do not match any are filtered out."""
+    def __isWheel(self, fileName: str) -> bool:
+        if re.search(rf".whl", fileName):
+            return True
+        return False
+
+    def __isPlatformSpecificWheel(self, fileName: str) -> bool:
+        if not self.__isWheel(fileName):
+            return False
+
+        if re.search(rf"-any.whl", fileName):
+            return False
+        
+        return True
+
+    def filterInHTML(self, htmlContent: str, regexZIPAndTars: str) -> str:
+        """Returns an HTML that keeps all those <a> entries from 'htmlContent' that follow all the specified set of rules (command flags and wheels filtering system stated in settings/wheelFilters.py). The ones that do not match any are filtered out."""
 
         outputSoup = BeautifulSoup(self._baseHTML_fromScratch, "html.parser")
 
@@ -276,11 +333,14 @@ class HTMLManager:
 
         aEntriesOutput: List[bs4Element.Tag] = list()
         for aEntry in aEntries:
-            if (self.__isDevFile(aEntry.string) and not includeDevs) or (self.__isRCFile(aEntry.string) and not includeRCs):
+            if (self.__isDevFile(aEntry.string) and not self.includeDevs) or (self.__isRCFile(aEntry.string) and not self.includeRCs):
+                continue
+
+            if self.__isPlatformSpecificWheel(aEntry.string) and not self.includePlatformSpecific:
                 print("hey " + str(aEntry.string))
                 continue
 
-            if not onlySources and self._wheelsManager.isValidWheel(aEntry.string):
+            if not self.onlySources and self._wheelsManager.isValidWheel(aEntry.string):
                 aEntriesOutput.append(aEntry)
             else:
                 reSult = re.match(regexZIPAndTars, aEntry.string)

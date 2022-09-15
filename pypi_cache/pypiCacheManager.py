@@ -32,6 +32,7 @@ class LocalPyPIController:
         self._onlySources: bool
         self._includeDevs: bool
         self._includeRCs: bool
+        self._includePlatformSpecific: bool
 
         self._packageLocalFileName: str
 
@@ -54,6 +55,10 @@ class LocalPyPIController:
     @property
     def includeRCs(self):
         return self._includeRCs
+
+    @property
+    def includePlatformSpecific(self):
+        return self._includePlatformSpecific
 
     @property
     def packageLocalFileName(self):
@@ -83,6 +88,10 @@ class LocalPyPIController:
     def includeRCs(self, new_includeRCs: bool):
         self._includeRCs = new_includeRCs
 
+    @includePlatformSpecific.setter
+    def includePlatformSpecific(self, new_includePlatformSpecific: bool):
+        self._includePlatformSpecific = new_includePlatformSpecific
+
     @packageLocalFileName.setter
     def packageLocalFileName(self, new_PackageLocalFileName: str):
         self._packageLocalFileName = new_PackageLocalFileName
@@ -98,10 +107,13 @@ class LocalPyPIController:
         self.onlySources = args.onlySources
         self.includeDevs = args.includeDevs
         self.includeRCs = args.includeRCs
+        self.includePlatformSpecific = args.includePlatformSpecific
 
         self.pypiLocalPath = self.pypiLocalPath.replace("\\", "/")
 
         self.packageLocalFileName = os.path.join(self.pypiLocalPath, self.packageName) + "/"
+
+        self._htmlManager.setFlags(self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific)
 
         if (self.includeDevs or self.includeRCs) and self._htmlManager.areWheelFiltersEnabled():
             print("\tWARNING! Development releases (devX) or release candidates (RCs) flags are enabled, as well as the wheel filters, so they could be discarded anyway. This is caused because of the order of application: (1st) flags, (2nd) wheel filters.")
@@ -244,7 +256,7 @@ class LocalPyPIController:
         else:
             pypiPackageHTMLStr: str = pypiPackageHTML.decode("utf-8")
 
-        pypiPackageHTMLStr = self._htmlManager.filterInHTML(pypiPackageHTMLStr, self._regexZIPAndTars, self.packageName, self.onlySources, self.includeDevs, self.includeRCs)
+        pypiPackageHTMLStr = self._htmlManager.filterInHTML(pypiPackageHTMLStr, self._regexZIPAndTars)
         linksToDownload: Dict[str, str] = self._htmlManager.getHRefsList(pypiPackageHTMLStr)
 
         packageBaseHTML: str = self._htmlManager.getBaseHTML()
@@ -310,7 +322,7 @@ class LocalPyPIController:
         with open(self.packageLocalFileName + self._packageHTMLFileName, "r") as pypiLocalIndexFile:
             pypiLocalIndex: str = pypiLocalIndexFile.read()
 
-        pypiRemoteIndexFiltered: str = self._htmlManager.filterInHTML(pypiRemoteIndexStr, self._regexZIPAndTars, self.packageName, self.onlySources, self.includeDevs, self.includeRCs)
+        pypiRemoteIndexFiltered: str = self._htmlManager.filterInHTML(pypiRemoteIndexStr, self._regexZIPAndTars)
 
         # ToDo: fix the bug happening if the local repo hast the wheels&src but the update method has enabled the -s option which means we only want the source. the warning message would not apply yet
         remoteIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiRemoteIndexFiltered)
