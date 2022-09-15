@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pypickup"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
   { name="German Navarro", email="ge.najim@gmail.com" },
   { name="Sergio Sánchez Ramírez", email="sergio.sanchez.ramirez@bsc.es" },
