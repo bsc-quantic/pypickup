@@ -1,21 +1,14 @@
 # pypickup
 
-An utility to download packages from PyPI and save them locally, building a tree as if it were the PyPI repository itself.
+A tool to download packages from PyPI and save them locally, building a directory tree that fulfills [PEP 503](https://peps.python.org/pep-0503/). Properly configured, `pip` will install packages from there as if it was downloading them from the PyPI repository itself.
 
-Python3 libraries required:
-
-- os, typing, re, urllib, argparse (built-in libs)
-- bs4, wheel-filename (in PyPI.org, available on 'pip')
-
-#### Deploy
-
-To use its commands, go to the project root and do:
-
+For example, the following commands will download all final versions (no `dev` versions), source distributions of `numpy` into the `.pypickup` folder, and then install the lates compatible version from there.
 ```
-pip install --editable .
+pypickup add -s -p ./.pypickup numpy
+pip install --index-url ./.pypickup numpy
 ```
 
-#### Utilities
+## Commands
 
 An -h flag can be used on any command to display all the available options and its usage. For instance:
 
@@ -49,4 +42,11 @@ If we specify a package for the 'list' command, it will show a list of the downl
 
 ```
 pypickup list numpy
+```
+
+## Development
+
+In order to speed up development, we recommend an editable installation:
+```
+pip install --editable .
 ```
