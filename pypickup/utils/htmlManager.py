@@ -337,7 +337,6 @@ class HTMLManager:
                 continue
 
             if self.__isPlatformSpecificWheel(aEntry.string) and not self.includePlatformSpecific:
-                print("hey " + str(aEntry.string))
                 continue
 
             if not self.onlySources and self._wheelsManager.isValidWheel(aEntry.string):
