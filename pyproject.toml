@@ -38,6 +38,7 @@ pypi-cache = "pypi_cache.cli:cli"
 [project.entry-points."pypi_cache.cmd"]
 add = "pypi_cache.cmd:Add"
 update = "pypi_cache.cmd:Update"
+rm = "pypi_cache.cmd:Remove"
 
 [tool.black]
 line-length = 1000

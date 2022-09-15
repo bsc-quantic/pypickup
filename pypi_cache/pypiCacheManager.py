@@ -337,3 +337,8 @@ class LocalPyPIController:
 
         with open(self.packageLocalFileName + self._packageHTMLFileName, "r+") as pypiLocalIndexFile:
             self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, pypiLocalIndexFile)
+
+    def removePackage(self):
+        """Removes the self.packageName from the local repository. Assumes it exists."""
+        
+        return None
