@@ -34,8 +34,8 @@ class LocalPyPIController:
         self._includeRCs: bool
         self._includePlatformSpecific: bool
 
-        self._baseHTMLFilePath: str
-        self._packageLocalFileName: str
+        self._baseHTMLFileFullName: str
+        self._packageLocalPath: str
 
     @property
     def packageName(self):
@@ -62,12 +62,12 @@ class LocalPyPIController:
         return self._includePlatformSpecific
 
     @property
-    def packageLocalFileName(self):
-        return self._packageLocalFileName
+    def packageLocalPath(self):
+        return self._packageLocalPath
 
     @property
-    def baseHTMLFilePath(self):
-        return self._baseHTMLFilePath
+    def baseHTMLFileFullName(self):
+        return self._baseHTMLFileFullName
 
     @property
     def remotePyPIRepository(self):
@@ -97,13 +97,13 @@ class LocalPyPIController:
     def includePlatformSpecific(self, new_includePlatformSpecific: bool):
         self._includePlatformSpecific = new_includePlatformSpecific
 
-    @packageLocalFileName.setter
-    def packageLocalFileName(self, new_PackageLocalFileName: str):
-        self._packageLocalFileName = new_PackageLocalFileName
+    @packageLocalPath.setter
+    def packageLocalPath(self, new_packageLocalPath: str):
+        self._packageLocalPath = new_packageLocalPath
 
-    @baseHTMLFilePath.setter
-    def baseHTMLFilePath(self, new_baseHTMLFilePath: str):
-        self._baseHTMLFilePath = new_baseHTMLFilePath
+    @baseHTMLFileFullName.setter
+    def baseHTMLFileFullName(self, new_baseHTMLFileFullName: str):
+        self._baseHTMLFileFullName = new_baseHTMLFileFullName
 
     ### Common methods ###
 
@@ -120,9 +120,10 @@ class LocalPyPIController:
 
         self.pypiLocalPath = self.pypiLocalPath.replace("\\", "/")
 
-        # ToDo: refactor these 2 following names
-        self.baseHTMLFilePath = os.path.join(self.pypiLocalPath, self._baseHTMLFileName)
-        self.packageLocalFileName = os.path.join(self.pypiLocalPath, self.packageName) + "/"
+        self.baseHTMLFileFullName = os.path.join(self.pypiLocalPath, self._baseHTMLFileName)
+        
+        self.packageLocalPath = os.path.join(self.pypiLocalPath, self.packageName) + "/"
+        self.packageHTMLFileFullName = os.path.join(self.packageLocalPath, self._packageHTMLFileName)
 
         self._htmlManager.setFlags(self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific)
 
@@ -196,7 +197,7 @@ class LocalPyPIController:
             if not ok:
                 print("\nUNABLE TO DOWNLOAD PACKAGE '" + fileName + "' (URL: " + fileLink + ")\n\tSTATUS: " + status + "\n")
             else:
-                with open(self.packageLocalFileName + fileName, "wb") as f:
+                with open(self.packageLocalPath + fileName, "wb") as f:
                     f.write(content)
 
                 updatedHTML = self.__addPackageToIndex(updatedHTML, file, "./" + fileName, fileName)
@@ -224,21 +225,21 @@ class LocalPyPIController:
         if not os.path.isdir(directory):
             os.mkdir(directory)
 
-    def __createBaseHTMLFileIfNeeded(self, baseHTMLFilePath: str):
-        if not os.path.exists(baseHTMLFilePath):
-            open(baseHTMLFilePath, "a").close()
+    def __createFileIfNeeded(self, file: str):
+        if not os.path.exists(file):
+            open(file, "a").close()
 
     def initLocalRepo(self):
         """Initializes the local repository creating the needed directories (if not exist) and updating accordingly the base HTML."""
 
         self.__createDirIfNeeded(self.pypiLocalPath)
-        self.__createDirIfNeeded(self.packageLocalFileName)
+        self.__createDirIfNeeded(self.packageLocalPath)
 
-        self.__createBaseHTMLFileIfNeeded(self.baseHTMLFilePath)
+        self.__createFileIfNeeded(self.baseHTMLFileFullName)
 
     def __addEntryToBaseHTMLFile(self) -> bool:
-        baseHTML_file = open(self.baseHTMLFilePath, "r+")
-        htmlContent: str = baseHTML_file.read()
+        baseHTMLFile = open(self.baseHTMLFileFullName, "r+")
+        htmlContent: str = baseHTMLFile.read()
 
         if len(htmlContent) == 0:
             htmlContent = self._htmlManager.getBaseHTML()
@@ -247,11 +248,11 @@ class LocalPyPIController:
 
         needToDownloadFiles: bool = False
         if not entryAlreadyExists:
-            self.__writeFileFromTheStart(baseHTML_file, htmlUpdated)
+            self.__writeFileFromTheStart(baseHTMLFile, htmlUpdated)
 
             needToDownloadFiles = True
 
-        baseHTML_file.close()
+        baseHTMLFile.close()
 
         return needToDownloadFiles
 
@@ -276,7 +277,7 @@ class LocalPyPIController:
 
         packageBaseHTML: str = self._htmlManager.getBaseHTML()
         _, packageBaseHTML = self._htmlManager.insertHTMLEntry(packageBaseHTML, "h1", {}, "Links for " + self.packageName)
-        with open(self.packageLocalFileName + self._packageHTMLFileName, "w") as packageHTML_file:
+        with open(self.packageHTMLFileFullName, "w") as packageHTML_file:
             packageHTML_file.write(packageBaseHTML)
 
             self.__downloadFilesInLocalPath(linksToDownload, packageBaseHTML, packageHTML_file)
@@ -286,10 +287,10 @@ class LocalPyPIController:
     def isAlreadyAdded(self) -> bool:
         """Returns whether the self._packageName already exists in the self._pypiLocalPath. If the local repository has not even been created previously, returns False."""
 
-        if not os.path.exists(self.baseHTMLFilePath):
+        if not os.path.exists(self.baseHTMLFileFullName):
             return False
 
-        indexHTMLFile = open(self.baseHTMLFilePath, "r")
+        indexHTMLFile = open(self.baseHTMLFileFullName, "r")
         baseHTMLStr: str = indexHTMLFile.read()
 
         packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(baseHTMLStr)
@@ -333,7 +334,7 @@ class LocalPyPIController:
         else:
             pypiRemoteIndexStr: str = pypiRemoteIndex.decode("utf-8")
 
-        with open(self.packageLocalFileName + self._packageHTMLFileName, "r") as pypiLocalIndexFile:
+        with open(self.packageHTMLFileFullName, "r") as pypiLocalIndexFile:
             pypiLocalIndex: str = pypiLocalIndexFile.read()
 
         pypiRemoteIndexFiltered: str = self._htmlManager.filterInHTML(pypiRemoteIndexStr, self._regexZIPAndTars)
@@ -343,8 +344,11 @@ class LocalPyPIController:
         localIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiLocalIndex)
         newPackagesToDownload: Dict[str, str] = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
 
-        with open(self.packageLocalFileName + self._packageHTMLFileName, "r+") as pypiLocalIndexFile:
+        with open(self.packageHTMLFileFullName, "r+") as pypiLocalIndexFile:
             self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, pypiLocalIndexFile)
+
+    def __removePackageFromBaseHTMLIndex(self):
+        return None
 
     def removePackage(self):
         """Removes the self.packageName from the local repository. Assumes it exists."""
