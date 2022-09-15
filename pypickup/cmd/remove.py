@@ -10,7 +10,7 @@ class Remove:
     @staticmethod
     def init_subparser(parser: argparse.ArgumentParser):
         parser.add_argument("packageNameList", type=str, nargs="+", default="", help="Python packages list to be removed from the local repository.")
-        parser.add_argument("-p", "--index-path", dest="pypiLocalPath", type=str, default=os.getenv("PYPICACHE_INDEX_PATH", default="./.pypickup/"), help="Local root path in which the specified package is expected to be.")
+        parser.add_argument("-p", "--index-path", dest="pypiLocalPath", type=str, default=os.getenv("PYPICKUP_INDEX_PATH", default="./.pypickup/"), help="Local root path in which the specified package is expected to be.")
 
     @staticmethod
     def __fillUpNonUsedArguments(args: argparse.Namespace) -> argparse.Namespace:

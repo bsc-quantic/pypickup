@@ -10,7 +10,7 @@ class Add:
     @staticmethod
     def init_subparser(parser: argparse.ArgumentParser):
         parser.add_argument("packageNameList", type=str, nargs="+", default="", help="Python packages list to add to the local repository.")
-        parser.add_argument("-p", "--index-path", dest="pypiLocalPath", type=str, default=os.getenv("PYPICACHE_INDEX_PATH", default="./.pypickup/"), help="Local root path in which the package from the PyPI repository will be downloaded.")
+        parser.add_argument("-p", "--index-path", dest="pypiLocalPath", type=str, default=os.getenv("PYPICKUP_INDEX_PATH", default="./.pypickup/"), help="Local root path in which the package from the PyPI repository will be downloaded.")
 
         parser.add_argument("-s", "--only-src", dest="onlySources", default=False, action="store_true", help="Download only the source files (.zip and .tar.gz). Disabled by default.")
         parser.add_argument("--dev", dest="includeDevs", default=False, action="store_true", help="Download also the new development releases (alpha, betas), which are not included by default.")
