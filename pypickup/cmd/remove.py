@@ -33,9 +33,6 @@ class Remove:
             controllerInstance = LocalPyPIController()
             controllerInstance.parseScriptArguments(args)
 
-            if controllerInstance.isAlreadyAdded():
-                controllerInstance.removePackage()
-            else:
-                print("Package " + controllerInstance.packageName + " has not been added to the local repository yet. Run the 'add' command first.")
+            controllerInstance.removePackage()
 
             print()

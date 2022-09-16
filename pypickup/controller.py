@@ -3,6 +3,7 @@ from io import TextIOWrapper
 import os
 
 import argparse
+import shutil
 import time
 from typing import Tuple, Dict
 
@@ -290,9 +291,10 @@ class LocalPyPIController:
         if not os.path.exists(self.baseHTMLFileFullName):
             return False
 
-        indexHTMLFile = open(self.baseHTMLFileFullName, "r")
-        baseHTMLStr: str = indexHTMLFile.read()
+        with open(self.baseHTMLFileFullName, "r") as baseHTMLFile:
+            baseHTMLStr: str = baseHTMLFile.read()
 
+        # ToDo: this is super expensive. Just use the htmlmanager to ".find()" the package in the baseHTMLStr
         packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(baseHTMLStr)
 
         if self.packageName in packagesDict:
@@ -347,10 +349,25 @@ class LocalPyPIController:
         with open(self.packageHTMLFileFullName, "r+") as pypiLocalIndexFile:
             self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, pypiLocalIndexFile)
 
-    def __removePackageFromBaseHTMLIndex(self):
-        return None
+    def __removeDir(self, directory: str, recursively: bool = False):
+        if recursively:
+            shutil.rmtree(directory)
+        else:
+            os.rmdir(directory)
 
     def removePackage(self):
         """Removes the self.packageName from the local repository. Assumes it exists."""
         
-        return None
+        with open(self.baseHTMLFileFullName, "r+") as baseHTMLFile:
+            baseHTMLStr: str = baseHTMLFile.read()
+            packageExisted, updatedHTML = self._htmlManager.removeHTMLEntry(baseHTMLStr, "a", self.packageName)
+
+            if not packageExisted:
+                print("Package '" + self.packageName + "' was not being tracked yet.")
+                return
+
+            self.__writeFileFromTheStart(baseHTMLFile, updatedHTML)
+
+        self.__removeDir(self.packageLocalPath, True)
+
+        print("'" + self.packageName + "' package successfully removed.")

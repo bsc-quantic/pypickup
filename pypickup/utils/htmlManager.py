@@ -273,6 +273,7 @@ class HTMLManager:
 
         return resultingHTML
 
+    # ToDo: switch attributes and newEntryText to be consistent with the 'removeHTMLEntry' method
     def insertHTMLEntry(self, htmlString: str, tagName: str, attributes: Dict[str, str], newEntryText: str) -> Tuple[bool, str]:
         """Appends a new element <'tagName'> into the 'htmlString' body, with the attributes in 'attributes'. Returns whether the entry already existed in the htmlString, and the updated htmlString."""
 
@@ -289,6 +290,19 @@ class HTMLManager:
         soup.html.body.append(newEntry)
 
         return False, self.__prettifyHTML(soup)
+
+    def removeHTMLEntry(self, htmlString: str, tagName: str, entryText: str) -> Tuple[bool, str]:
+        """Removes the element identified by a 'tagName' and 'entryText' from the 'htmlString'. Returns whether the entry already existed in the htmlString, and the updated htmlString."""
+
+        soup = BeautifulSoup(htmlString, "html.parser")
+        
+        tagToRemove = soup.find(tagName, string=entryText)
+        if not tagToRemove:
+            return False, htmlString
+
+        tagToRemove.decompose()
+
+        return True, self.__prettifyHTML(soup)
 
     def __addZipsOrTarsToEntries(self, zipAndTarsDict: Dict[str, str], originalSoup: BeautifulSoup, aEntriesOutput: List[bs4Element.Tag]):
         for name, ext in zipAndTarsDict.items():
