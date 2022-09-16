@@ -273,8 +273,7 @@ class HTMLManager:
 
         return resultingHTML
 
-    # ToDo: switch attributes and newEntryText to be consistent with the 'removeHTMLEntry' method
-    def insertHTMLEntry(self, htmlString: str, tagName: str, attributes: Dict[str, str], newEntryText: str) -> Tuple[bool, str]:
+    def insertHTMLEntry(self, htmlString: str, tagName: str, newEntryText: str, additionalAttrs: Dict[str, str]) -> Tuple[bool, str]:
         """Appends a new element <'tagName'> into the 'htmlString' body, with the attributes in 'attributes'. Returns whether the entry already existed in the htmlString, and the updated htmlString."""
 
         soup = BeautifulSoup(htmlString, "html.parser")
@@ -283,7 +282,7 @@ class HTMLManager:
             return True, ""
 
         newEntry = soup.new_tag(tagName)
-        for attrName, attrValue in attributes.items():
+        for attrName, attrValue in additionalAttrs.items():
             newEntry[attrName] = attrValue
         newEntry.string = newEntryText
 
@@ -370,7 +369,6 @@ class HTMLManager:
         self.__addZipsOrTarsToEntries(zipAndTarsDict, originalSoup, aEntriesOutput)
 
         for aEntry in aEntriesOutput:
-            # ToDo: the href for the aEntry must be the URL or the local path to the wheel/zip file?
             outputSoup.html.body.append(aEntry)
 
         return self.__prettifyHTML(outputSoup)

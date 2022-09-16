@@ -177,7 +177,7 @@ class LocalPyPIController:
         file.write(textToWrite)
 
     def __addPackageToIndex(self, indexHTML: str, file: TextIOWrapper, href: str, entryText: str) -> str:
-        _, updatedHTML = self._htmlManager.insertHTMLEntry(indexHTML, "a", {"href": href}, entryText)
+        _, updatedHTML = self._htmlManager.insertHTMLEntry(indexHTML, "a", entryText, {"href": href})
         self.__writeFileFromTheStart(file, updatedHTML)
 
         return updatedHTML
@@ -245,7 +245,7 @@ class LocalPyPIController:
         if len(htmlContent) == 0:
             htmlContent = self._htmlManager.getBaseHTML()
 
-        entryAlreadyExists, htmlUpdated = self._htmlManager.insertHTMLEntry(htmlContent, "a", {"href": "./" + self.packageName}, self.packageName)
+        entryAlreadyExists, htmlUpdated = self._htmlManager.insertHTMLEntry(htmlContent, "a", self.packageName, {"href": "./" + self.packageName})
 
         needToDownloadFiles: bool = False
         if not entryAlreadyExists:
@@ -277,7 +277,7 @@ class LocalPyPIController:
         linksToDownload: Dict[str, str] = self._htmlManager.getHRefsList(pypiPackageHTMLStr)
 
         packageBaseHTML: str = self._htmlManager.getBaseHTML()
-        _, packageBaseHTML = self._htmlManager.insertHTMLEntry(packageBaseHTML, "h1", {}, "Links for " + self.packageName)
+        _, packageBaseHTML = self._htmlManager.insertHTMLEntry(packageBaseHTML, "h1", "Links for " + self.packageName, {})
         with open(self.packageHTMLFileFullName, "w") as packageHTML_file:
             packageHTML_file.write(packageBaseHTML)
 
