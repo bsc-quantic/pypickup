@@ -114,6 +114,7 @@ class LocalPyPIController:
         self.packageName = args.packageName
         self.pypiLocalPath = args.pypiLocalPath
 
+        # ToDo: these are optional params. This must not be parsed in this generic method, but passed as a parameter to the main method of each command.
         self.onlySources = args.onlySources
         self.includeDevs = args.includeDevs
         self.includeRCs = args.includeRCs
@@ -341,7 +342,6 @@ class LocalPyPIController:
 
         pypiRemoteIndexFiltered: str = self._htmlManager.filterInHTML(pypiRemoteIndexStr, self._regexZIPAndTars)
 
-        # ToDo: fix the bug happening if the local repo hast the wheels&src but the update method has enabled the -s option which means we only want the source. the warning message would not apply yet
         remoteIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiRemoteIndexFiltered)
         localIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiLocalIndex)
         newPackagesToDownload: Dict[str, str] = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
