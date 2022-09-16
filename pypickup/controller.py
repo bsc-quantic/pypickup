@@ -371,3 +371,13 @@ class LocalPyPIController:
         self.__removeDir(self.packageLocalPath, True)
 
         print("'" + self.packageName + "' package successfully removed.")
+
+    def listPackages(self):
+        """Lists all the packages in the root HTML index, if self.packageName == None. Lists the downloaded files for package self.packageName otherwise."""
+
+        if self.packageName == "":
+            pass
+        else:
+            pass
+
+        print("NOT IMPLEMENTED " + self.packageName)

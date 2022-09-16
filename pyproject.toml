@@ -39,6 +39,7 @@ pypickup = "pypickup.cli:cli"
 add = "pypickup.cmd:Add"
 update = "pypickup.cmd:Update"
 rm = "pypickup.cmd:Remove"
+list = "pypickup.cmd:List"
 
 [tool.black]
 line-length = 1000
