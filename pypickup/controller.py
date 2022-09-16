@@ -285,7 +285,7 @@ class LocalPyPIController:
 
     ### 'Update' command methods ###
 
-    def isAlreadyAdded(self) -> bool:
+    def packageExists(self) -> bool:
         """Returns whether the self._packageName already exists in the self._pypiLocalPath. If the local repository has not even been created previously, returns False."""
 
         if not os.path.exists(self.baseHTMLFileFullName):

@@ -28,8 +28,7 @@ class Update:
             controllerInstance = LocalPyPIController()
             controllerInstance.parseScriptArguments(args)
 
-            canSynchronize: bool = controllerInstance.isAlreadyAdded()
-            if canSynchronize:
+            if controllerInstance.packageExists():
                 controllerInstance.synchronizeWithRemote()
             else:
                 print("Package " + controllerInstance.packageName + " has not been added to the local repository yet. Run the 'add' command first.")
