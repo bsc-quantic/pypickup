@@ -349,6 +349,8 @@ class LocalPyPIController:
         with open(self.packageHTMLFileFullName, "r+") as pypiLocalIndexFile:
             self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, pypiLocalIndexFile)
 
+    ### 'Remove' command methods ###
+
     def __removeDir(self, directory: str, recursively: bool = False):
         if recursively:
             shutil.rmtree(directory)
@@ -372,12 +374,25 @@ class LocalPyPIController:
 
         print("'" + self.packageName + "' package successfully removed.")
 
+    ### 'List' command methods ###
+
+    def repositoryExists(self) -> bool:
+        return os.path.exists(self.baseHTMLFileFullName)
+
     def listPackages(self):
         """Lists all the packages in the root HTML index, if self.packageName == None. Lists the downloaded files for package self.packageName otherwise."""
 
+        htmlString: str = ""
         if self.packageName == "":
-            pass
-        else:
-            pass
+            with open(self.baseHTMLFileFullName, "r") as baseHTMLFile:
+                htmlString = baseHTMLFile.read()
 
-        print("NOT IMPLEMENTED " + self.packageName)
+        else:
+            with open(self.packageHTMLFileFullName, "r") as packageHTMLFile:
+                htmlString = packageHTMLFile.read()
+    
+        packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(htmlString)
+
+        print("Found " + str(len(packagesDict)) + " files for package '" + self.packageName + "':")
+        for key, _ in packagesDict.items():
+            print(key)

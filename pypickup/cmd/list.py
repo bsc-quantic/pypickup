@@ -1,8 +1,6 @@
 import argparse
 import os
 
-from typing import List
-
 from pypickup.controller import LocalPyPIController
 
 
@@ -27,4 +25,10 @@ class List:
         controllerInstance = LocalPyPIController()
         controllerInstance.parseScriptArguments(args)
 
-        controllerInstance.listPackages()
+        if not controllerInstance.repositoryExists():
+            print("No local repository has been initialized yet. Download at least one package running the 'add' command.")
+        else:
+            if args.packageName != "" and not controllerInstance.packageExists():
+                print("Package " + controllerInstance.packageName + " has not been added to the local repository yet. Run the 'add' command first.")
+            else:
+                controllerInstance.listPackages()
