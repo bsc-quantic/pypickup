@@ -3,10 +3,10 @@ import os
 
 from typing import List
 
-from pypickup.controller import LocalPyPIController
+from pypickup.controller import Add
 
 
-class Add:
+class AddEP:
     @staticmethod
     def init_subparser(parser: argparse.ArgumentParser):
         parser.add_argument("packageNameList", type=str, nargs="+", default="", help="Python packages list to add to the local repository.")
@@ -25,7 +25,7 @@ class Add:
             args.packageName = packageName
             print("Adding '" + packageName + "' to the local index:")
 
-            controllerInstance = LocalPyPIController()
+            controllerInstance = Add()
             controllerInstance.parseScriptArguments(args)
 
             if controllerInstance.validPackageName():
@@ -35,7 +35,7 @@ class Add:
                 if needToAddPackage:
                     controllerInstance.addPackage()
                 else:
-                    print("Package " + controllerInstance.packageName + " has been already added to the local repository. Try to run the 'update' command instead to synchronize changes with the remote PyPI.")
+                    print("Package " + controllerInstance.packageName + " has been already added to the local repository. Try to run the 'update' command instead to synchronize changes against the remote PyPI.")
             else:
                 print("Package " + controllerInstance.packageName + " does not exist in the remote repository (" + controllerInstance.remotePyPIRepository + ")")
 

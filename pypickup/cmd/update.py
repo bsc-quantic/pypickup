@@ -3,10 +3,10 @@ import os
 
 from typing import List
 
-from pypickup.controller import LocalPyPIController
+from pypickup.controller import Update
 
 
-class Update:
+class UpdateEP:
     @staticmethod
     def init_subparser(parser: argparse.ArgumentParser):
         parser.add_argument("packageNameList", type=str, nargs="+", default="", help="Python packages list to add to the local repository.")
@@ -25,7 +25,7 @@ class Update:
             args.packageName = packageName
             print("Updating the local index for '" + packageName + "':")
 
-            controllerInstance = LocalPyPIController()
+            controllerInstance = Update()
             controllerInstance.parseScriptArguments(args)
 
             if controllerInstance.packageExists():

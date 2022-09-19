@@ -36,10 +36,10 @@ packages = ["pypickup", "pypickup.cmd", "pypickup.settings", "pypickup.utils"]
 pypickup = "pypickup.cli:cli"
 
 [project.entry-points."pypickup.cmd"]
-add = "pypickup.cmd:Add"
-update = "pypickup.cmd:Update"
-rm = "pypickup.cmd:Remove"
-list = "pypickup.cmd:List"
+add = "pypickup.cmd:AddEP"
+update = "pypickup.cmd:UpdateEP"
+rm = "pypickup.cmd:RemoveEP"
+list = "pypickup.cmd:ListEP"
 
 [tool.black]
 line-length = 1000

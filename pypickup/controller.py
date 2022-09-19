@@ -30,11 +30,6 @@ class LocalPyPIController:
         self._packageName: str
         self._pypiLocalPath: str
 
-        self._onlySources: bool
-        self._includeDevs: bool
-        self._includeRCs: bool
-        self._includePlatformSpecific: bool
-
         self._baseHTMLFileFullName: str
         self._packageLocalPath: str
 
@@ -47,28 +42,12 @@ class LocalPyPIController:
         return self._pypiLocalPath
 
     @property
-    def onlySources(self):
-        return self._onlySources
-
-    @property
-    def includeDevs(self):
-        return self._includeDevs
-
-    @property
-    def includeRCs(self):
-        return self._includeRCs
-
-    @property
-    def includePlatformSpecific(self):
-        return self._includePlatformSpecific
+    def baseHTMLFileFullName(self):
+        return self._baseHTMLFileFullName
 
     @property
     def packageLocalPath(self):
         return self._packageLocalPath
-
-    @property
-    def baseHTMLFileFullName(self):
-        return self._baseHTMLFileFullName
 
     @property
     def remotePyPIRepository(self):
@@ -82,31 +61,13 @@ class LocalPyPIController:
     def pypiLocalPath(self, new_PyPiLocalPath: str):
         self._pypiLocalPath = new_PyPiLocalPath
 
-    @onlySources.setter
-    def onlySources(self, new_onlySources: bool):
-        self._onlySources = new_onlySources
-
-    @includeDevs.setter
-    def includeDevs(self, new_includeDevs: bool):
-        self._includeDevs = new_includeDevs
-
-    @includeRCs.setter
-    def includeRCs(self, new_includeRCs: bool):
-        self._includeRCs = new_includeRCs
-
-    @includePlatformSpecific.setter
-    def includePlatformSpecific(self, new_includePlatformSpecific: bool):
-        self._includePlatformSpecific = new_includePlatformSpecific
-
-    @packageLocalPath.setter
-    def packageLocalPath(self, new_packageLocalPath: str):
-        self._packageLocalPath = new_packageLocalPath
-
     @baseHTMLFileFullName.setter
     def baseHTMLFileFullName(self, new_baseHTMLFileFullName: str):
         self._baseHTMLFileFullName = new_baseHTMLFileFullName
-
-    ### Common methods ###
+    
+    @packageLocalPath.setter
+    def packageLocalPath(self, new_packageLocalPath: str):
+        self._packageLocalPath = new_packageLocalPath
 
     def parseScriptArguments(self, args: argparse.ArgumentParser):
         """Parse the incoming arguments. A packageName and and pypiLocalPath are expected. Besides, it initializes derived class attributes."""
@@ -114,33 +75,39 @@ class LocalPyPIController:
         self.packageName = args.packageName
         self.pypiLocalPath = args.pypiLocalPath
 
-        # ToDo: these are optional params. This must not be parsed in this generic method, but passed as a parameter to the main method of each command.
-        self.onlySources = args.onlySources
-        self.includeDevs = args.includeDevs
-        self.includeRCs = args.includeRCs
-        self.includePlatformSpecific = args.includePlatformSpecific
-
         self.pypiLocalPath = self.pypiLocalPath.replace("\\", "/")
 
         self.baseHTMLFileFullName = os.path.join(self.pypiLocalPath, self._baseHTMLFileName)
-        
+
         self.packageLocalPath = os.path.join(self.pypiLocalPath, self.packageName) + "/"
         self.packageHTMLFileFullName = os.path.join(self.packageLocalPath, self._packageHTMLFileName)
 
-        self._htmlManager.setFlags(self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific)
+    def packageExists(self) -> bool:
+        """Returns whether the self._packageName already exists in the self._pypiLocalPath. If the local repository has not even been created previously, returns False."""
 
-        if (self.includeDevs or self.includeRCs) and self._htmlManager.areWheelFiltersEnabled():
-            print("\tWARNING! Development releases (devX) or release candidates (RCs) flags are enabled, as well as the wheel filters, so they could be discarded anyway. This is caused because of the order of application: (1st) flags, (2nd) wheel filters.")
-            print("\tPLEASE, CHECK OUT YOUR WHEEL FILTERS.")
+        if not os.path.exists(self.baseHTMLFileFullName):
+            return False
 
-    def __getLink(self, linkURL: str, verbose: bool = True, retries: int = 10, timeBetweenRetries: float = 0.5) -> Tuple[bool, str, bytes]:
+        with open(self.baseHTMLFileFullName, "r") as baseHTMLFile:
+            baseHTMLStr: str = baseHTMLFile.read()
+
+        # ToDo: this is super expensive. Just use the htmlmanager to ".find()" the package in the baseHTMLStr
+        packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(baseHTMLStr)
+
+        if self.packageName in packagesDict:
+            return True
+        else:
+            return False
+
+    def _getLink(self, linkURL: str, verbose: bool = True, retries: int = 10, timeBetweenRetries: float = 0.5) -> Tuple[bool, str, bytes]:
         response: requests.Response = requests.Response()
 
         retriesCounter: int = retries
         again: bool = True
         while again:
             retriesCounter -= 1
-            if retriesCounter == 0: break
+            if retriesCounter == 0:
+                break
 
             try:
                 response = requests.get(linkURL, timeout=5)
@@ -150,7 +117,7 @@ class LocalPyPIController:
             except:
                 again = True
 
-                if verbose: 
+                if verbose:
                     print("Trying again...\t(" + linkURL + ")")
                 time.sleep(timeBetweenRetries)
 
@@ -172,18 +139,18 @@ class LocalPyPIController:
 
         return True, "200 OK", response.content
 
-    def __writeFileFromTheStart(self, file: TextIOWrapper, textToWrite: str):
+    def _writeFileFromTheStart(self, file: TextIOWrapper, textToWrite: str):
         file.seek(0)
         file.truncate(0)
         file.write(textToWrite)
 
     def __addPackageToIndex(self, indexHTML: str, file: TextIOWrapper, href: str, entryText: str) -> str:
         _, updatedHTML = self._htmlManager.insertHTMLEntry(indexHTML, "a", entryText, {"href": href})
-        self.__writeFileFromTheStart(file, updatedHTML)
+        self._writeFileFromTheStart(file, updatedHTML)
 
         return updatedHTML
 
-    def __downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str, file: TextIOWrapper):
+    def _downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str, file: TextIOWrapper):
         updatedHTML: str = indexHTML
 
         if len(packagesToDownload) == 0:
@@ -195,7 +162,7 @@ class LocalPyPIController:
         actuallyDownloadedPackages: int = 0
         for fileName, fileLink in packagesToDownload.items():
             print("Downloading package #" + str(packageCounter) + ": '" + fileName + "'...")
-            ok, status, content = self.__getLink(fileLink)
+            ok, status, content = self._getLink(fileLink)
             if not ok:
                 print("\nUNABLE TO DOWNLOAD PACKAGE '" + fileName + "' (URL: " + fileLink + ")\n\tSTATUS: " + status + "\n")
             else:
@@ -211,12 +178,64 @@ class LocalPyPIController:
         print()
         print(str(actuallyDownloadedPackages) + "/" + str(len(packagesToDownload)) + " downloaded.")
 
-    ### 'Add' command methods ###
+
+class Add(LocalPyPIController):
+    def __init__(self):
+        self._onlySources: bool
+        self._includeDevs: bool
+        self._includeRCs: bool
+        self._includePlatformSpecific: bool
+
+    @property
+    def onlySources(self):
+        return self._onlySources
+
+    @property
+    def includeDevs(self):
+        return self._includeDevs
+
+    @property
+    def includeRCs(self):
+        return self._includeRCs
+
+    @property
+    def includePlatformSpecific(self):
+        return self._includePlatformSpecific
+
+    @onlySources.setter
+    def onlySources(self, new_onlySources: bool):
+        self._onlySources = new_onlySources
+
+    @includeDevs.setter
+    def includeDevs(self, new_includeDevs: bool):
+        self._includeDevs = new_includeDevs
+
+    @includeRCs.setter
+    def includeRCs(self, new_includeRCs: bool):
+        self._includeRCs = new_includeRCs
+
+    @includePlatformSpecific.setter
+    def includePlatformSpecific(self, new_includePlatformSpecific: bool):
+        self._includePlatformSpecific = new_includePlatformSpecific
+
+    def parseScriptArguments(self, args: argparse.ArgumentParser):
+        LocalPyPIController.parseScriptArguments(self, args)
+
+        self.onlySources = args.onlySources
+        self.includeDevs = args.includeDevs
+        self.includeRCs = args.includeRCs
+        self.includePlatformSpecific = args.includePlatformSpecific
+
+        self._htmlManager.setFlags(self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific)
+
+        if (self.includeDevs or self.includeRCs) and self._htmlManager.areWheelFiltersEnabled():
+            print("\tWARNING! Development releases (devX) or release candidates (RCs) flags are enabled, as well as the wheel filters, so they could be discarded anyway. This is caused because of the order of application: (1st) flags, (2nd) wheel filters.")
+            print("\tPLEASE, CHECK OUT YOUR WHEEL FILTERS.")
 
     def validPackageName(self) -> bool:
         """Checks whether the package link exists or not. If not, it returns False. True otherwise."""
 
-        ok, status, _ = self.__getLink(self._remotePypiBaseDir + self.packageName, False)
+        ok, status, _ = self._getLink(self._remotePypiBaseDir + self.packageName, False)
         if not ok:
             print(status)
             return False
@@ -250,7 +269,7 @@ class LocalPyPIController:
 
         needToDownloadFiles: bool = False
         if not entryAlreadyExists:
-            self.__writeFileFromTheStart(baseHTMLFile, htmlUpdated)
+            self._writeFileFromTheStart(baseHTMLFile, htmlUpdated)
 
             needToDownloadFiles = True
 
@@ -268,7 +287,7 @@ class LocalPyPIController:
     def addPackage(self):
         """Downloads all the files for the required package 'packageName', i.e. all the .whl, the .zip and the .tar.gz if necessary."""
 
-        ok, status, pypiPackageHTML = self.__getLink(self._remotePypiBaseDir + self.packageName)
+        ok, status, pypiPackageHTML = self._getLink(self._remotePypiBaseDir + self.packageName)
         if not ok:
             print(status)
         else:
@@ -282,26 +301,15 @@ class LocalPyPIController:
         with open(self.packageHTMLFileFullName, "w") as packageHTML_file:
             packageHTML_file.write(packageBaseHTML)
 
-            self.__downloadFilesInLocalPath(linksToDownload, packageBaseHTML, packageHTML_file)
+            self._downloadFilesInLocalPath(linksToDownload, packageBaseHTML, packageHTML_file)
 
-    ### 'Update' command methods ###
 
-    def packageExists(self) -> bool:
-        """Returns whether the self._packageName already exists in the self._pypiLocalPath. If the local repository has not even been created previously, returns False."""
+class Update(Add):
+    def __init__(self):
+        pass
 
-        if not os.path.exists(self.baseHTMLFileFullName):
-            return False
-
-        with open(self.baseHTMLFileFullName, "r") as baseHTMLFile:
-            baseHTMLStr: str = baseHTMLFile.read()
-
-        # ToDo: this is super expensive. Just use the htmlmanager to ".find()" the package in the baseHTMLStr
-        packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(baseHTMLStr)
-
-        if self.packageName in packagesDict:
-            return True
-        else:
-            return False
+    def parseScriptArguments(self, args: argparse.ArgumentParser):
+        Add.parseScriptArguments(self, args)
 
     def __checkPackagesInLocalButNotInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> str:
         additionalPackagesMessage: str = ""
@@ -331,7 +339,7 @@ class LocalPyPIController:
     def synchronizeWithRemote(self):
         """Synchronize the self.packageName against the PyPI remote repository. It adds the new available packages to the packageName/index.html and download them. Assumes the folders exists."""
 
-        ok, status, pypiRemoteIndex = self.__getLink(self._remotePypiBaseDir + self.packageName)
+        ok, status, pypiRemoteIndex = self._getLink(self._remotePypiBaseDir + self.packageName)
         if not ok:
             print(status)
         else:
@@ -347,9 +355,15 @@ class LocalPyPIController:
         newPackagesToDownload: Dict[str, str] = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
 
         with open(self.packageHTMLFileFullName, "r+") as pypiLocalIndexFile:
-            self.__downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, pypiLocalIndexFile)
+            self._downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, pypiLocalIndexFile)
 
-    ### 'Remove' command methods ###
+
+class Remove(LocalPyPIController):
+    def __init__(self):
+        pass
+
+    def parseScriptArguments(self, args: argparse.ArgumentParser):
+        LocalPyPIController.parseScriptArguments(self, args)
 
     def __removeDir(self, directory: str, recursively: bool = False):
         if recursively:
@@ -359,7 +373,7 @@ class LocalPyPIController:
 
     def removePackage(self):
         """Removes the self.packageName from the local repository. Assumes it exists."""
-        
+
         with open(self.baseHTMLFileFullName, "r+") as baseHTMLFile:
             baseHTMLStr: str = baseHTMLFile.read()
             packageExisted, updatedHTML = self._htmlManager.removeHTMLEntry(baseHTMLStr, "a", self.packageName)
@@ -368,13 +382,19 @@ class LocalPyPIController:
                 print("Package '" + self.packageName + "' was not being tracked yet.")
                 return
 
-            self.__writeFileFromTheStart(baseHTMLFile, updatedHTML)
+            self._writeFileFromTheStart(baseHTMLFile, updatedHTML)
 
         self.__removeDir(self.packageLocalPath, True)
 
         print("'" + self.packageName + "' package successfully removed.")
 
-    ### 'List' command methods ###
+
+class List(LocalPyPIController):
+    def __init__(self):
+        pass
+
+    def parseScriptArguments(self, args: argparse.ArgumentParser):
+        LocalPyPIController.parseScriptArguments(self, args)
 
     def repositoryExists(self) -> bool:
         return os.path.exists(self.baseHTMLFileFullName)
@@ -390,9 +410,10 @@ class LocalPyPIController:
         else:
             with open(self.packageHTMLFileFullName, "r") as packageHTMLFile:
                 htmlString = packageHTMLFile.read()
-    
+
         packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(htmlString)
 
+        # ToDo: this print should be not always like this, it depends on whether the self.packageName is empty or not.
         print("Found " + str(len(packagesDict)) + " files for package '" + self.packageName + "':")
         for key, _ in packagesDict.items():
             print(key)
