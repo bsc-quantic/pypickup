@@ -154,26 +154,27 @@ class LocalPyPIController:
     def _downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str, file: TextIOWrapper):
         updatedHTML: str = indexHTML
 
+        actuallyDownloadedPackages: int = 0
+
         if len(packagesToDownload) == 0:
             print("No new packages in the remote to download.")
         else:
             print(str(len(packagesToDownload)) + " new packages available in the remote.")
 
-        with tqdm(total=len(packagesToDownload)) as progressBar:
-            actuallyDownloadedPackages: int = 0
-            for fileName, fileLink in packagesToDownload.items():
-                ok, status, content = self._getLink(fileLink)
-                if not ok:
-                    print("\nUNABLE TO DOWNLOAD PACKAGE '" + fileName + "' (URL: " + fileLink + ")\n\tSTATUS: " + status + "\n")
-                else:
-                    with open(self.packageLocalPath + fileName, "wb") as f:
-                        f.write(content)
+            with tqdm(total=len(packagesToDownload)) as progressBar:
+                for fileName, fileLink in packagesToDownload.items():
+                    ok, status, content = self._getLink(fileLink)
+                    if not ok:
+                        print("\nUNABLE TO DOWNLOAD PACKAGE '" + fileName + "' (URL: " + fileLink + ")\n\tSTATUS: " + status + "\n")
+                    else:
+                        with open(self.packageLocalPath + fileName, "wb") as f:
+                            f.write(content)
 
-                    updatedHTML = self.__addPackageToIndex(updatedHTML, file, "./" + fileName, fileName)
+                        updatedHTML = self.__addPackageToIndex(updatedHTML, file, "./" + fileName, fileName)
 
-                    actuallyDownloadedPackages += 1
+                        actuallyDownloadedPackages += 1
 
-                progressBar.update(1)
+                    progressBar.update(1)
 
         print()
         print(str(actuallyDownloadedPackages) + "/" + str(len(packagesToDownload)) + " downloaded.")
