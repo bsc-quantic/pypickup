@@ -17,6 +17,8 @@ class UpdateEP:
         parser.add_argument("--rc", dest="includeRCs", default=False, action="store_true", help="Download also the release candidates (rc), which are not included by default.")
         parser.add_argument("--ps", "--platform-specific", dest="includePlatformSpecific", default=False, action="store_true", help="Download also the platform-specific wheels, which are not included by default. If this flag is not set, only platform-agnostic files are considered.")
 
+        parser.add_argument("-d", "--dry-run", dest="dryRun", default=False, action="store_true", help="Display the changes that would be performed without actually making them.")
+
     @staticmethod
     def run(args: argparse.Namespace):
         listOfPackages: List[str] = args.packageNameList

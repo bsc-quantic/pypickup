@@ -27,12 +27,17 @@ class LocalPyPIController:
 
     _regexZIPAndTars = "^(.*)\.(zip|tar.gz|tar.bz2|tar.xz|tar.Z|tar)$"
 
+    _dryRunsTmpDir = "./.pypickup_tmp/"
+
     def __init__(self):
         self._packageName: str
         self._pypiLocalPath: str
 
         self._baseHTMLFileFullName: str
         self._packageLocalPath: str
+
+    def __del__(self):
+        self._removeDir(self._dryRunsTmpDir, True)
 
     @property
     def packageName(self):
@@ -70,11 +75,23 @@ class LocalPyPIController:
     def packageLocalPath(self, new_packageLocalPath: str):
         self._packageLocalPath = new_packageLocalPath
 
+    def _removeDir(self, directory: str, recursively: bool = False):
+        if os.path.exists(directory):
+            if recursively:
+                shutil.rmtree(directory)
+            else:
+                os.rmdir(directory)
+
     def parseScriptArguments(self, args: argparse.ArgumentParser):
         """Parse the incoming arguments. A packageName and and pypiLocalPath are expected. Besides, it initializes derived class attributes."""
 
         self.packageName = args.packageName
         self.pypiLocalPath = args.pypiLocalPath
+        
+        if hasattr(args, "dryRun"):
+            if args.dryRun:
+                shutil.copytree(self.pypiLocalPath, self._dryRunsTmpDir)
+                self.pypiLocalPath = self._dryRunsTmpDir
 
         self.pypiLocalPath = self.pypiLocalPath.replace("\\", "/")
 
@@ -161,7 +178,7 @@ class LocalPyPIController:
         else:
             print(str(len(packagesToDownload)) + " new packages available in the remote.")
 
-            with tqdm(total=len(packagesToDownload)) as progressBar:
+            with tqdm(total=len(packagesToDownload), desc="Download") as progressBar:
                 for fileName, fileLink in packagesToDownload.items():
                     ok, status, content = self._getLink(fileLink)
                     if not ok:
@@ -179,9 +196,10 @@ class LocalPyPIController:
         print()
         print(str(actuallyDownloadedPackages) + "/" + str(len(packagesToDownload)) + " downloaded.")
 
-
 class Add(LocalPyPIController):
     def __init__(self):
+        LocalPyPIController.__init__(self)
+
         self._onlySources: bool
         self._includeDevs: bool
         self._includeRCs: bool
@@ -307,7 +325,7 @@ class Add(LocalPyPIController):
 
 class Update(Add):
     def __init__(self):
-        pass
+        Add.__init__(self)
 
     def parseScriptArguments(self, args: argparse.ArgumentParser):
         Add.parseScriptArguments(self, args)
@@ -361,16 +379,10 @@ class Update(Add):
 
 class Remove(LocalPyPIController):
     def __init__(self):
-        pass
+        LocalPyPIController.__init__(self)
 
     def parseScriptArguments(self, args: argparse.ArgumentParser):
         LocalPyPIController.parseScriptArguments(self, args)
-
-    def __removeDir(self, directory: str, recursively: bool = False):
-        if recursively:
-            shutil.rmtree(directory)
-        else:
-            os.rmdir(directory)
 
     def removePackage(self):
         """Removes the self.packageName from the local repository. Assumes it exists."""
@@ -385,14 +397,14 @@ class Remove(LocalPyPIController):
 
             self._writeFileFromTheStart(baseHTMLFile, updatedHTML)
 
-        self.__removeDir(self.packageLocalPath, True)
+        self._removeDir(self.packageLocalPath, True)
 
         print("'" + self.packageName + "' package successfully removed.")
 
 
 class List(LocalPyPIController):
     def __init__(self):
-        pass
+        LocalPyPIController.__init__(self)
 
     def parseScriptArguments(self, args: argparse.ArgumentParser):
         LocalPyPIController.parseScriptArguments(self, args)
