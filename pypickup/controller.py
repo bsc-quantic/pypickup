@@ -70,7 +70,7 @@ class LocalPyPIController:
     @baseHTMLFileFullName.setter
     def baseHTMLFileFullName(self, new_baseHTMLFileFullName: str):
         self._baseHTMLFileFullName = new_baseHTMLFileFullName
-    
+
     @packageLocalPath.setter
     def packageLocalPath(self, new_packageLocalPath: str):
         self._packageLocalPath = new_packageLocalPath
@@ -87,7 +87,7 @@ class LocalPyPIController:
 
         self.packageName = args.packageName
         self.pypiLocalPath = args.pypiLocalPath
-        
+
         if hasattr(args, "dryRun"):
             if args.dryRun:
                 shutil.copytree(self.pypiLocalPath, self._dryRunsTmpDir)
@@ -111,7 +111,14 @@ class LocalPyPIController:
 
         return self._htmlManager.existsHTMLEntry(baseHTMLStr, "a", self.packageName)
 
-    def _getLink(self, linkURL: str, verbose: bool = True, retries: int = 10, timeBetweenRetries: float = 0.5) -> Tuple[bool, str, bytes]:
+    def __printResponseProgressBar(self, linkURL: str, response: requests.Response, globalProgressBar: tqdm = None, chunkSize: int = 4):
+        """The chunkSize defines the speed at which the response content is consumed, so it actually works as a bottleneck. The smaller, the slower."""
+
+        with tqdm.wrapattr(open(os.devnull, "wb"), "write", miniters=1, position=1, leave=False, desc=linkURL.split("/")[-1].split("#")[0], total=int(response.headers.get("content-length", 0)), ncols=100) as fout:
+            for chunk in response.iter_content(chunk_size=chunkSize):
+                fout.write(chunk)
+
+    def _getLink(self, linkURL: str, debugMode: bool = True, printVerbose=False, retries: int = 10, timeBetweenRetries: float = 0.5, globalProgressBar: tqdm = None) -> Tuple[bool, str, bytes]:
         response: requests.Response = requests.Response()
 
         retriesCounter: int = retries
@@ -122,23 +129,31 @@ class LocalPyPIController:
                 break
 
             try:
-                response = requests.get(linkURL, timeout=5)
+                response = requests.get(linkURL, timeout=5, stream=printVerbose)
+                responseContent: str = response.content
+
+                if printVerbose:
+                    self.__printResponseProgressBar(linkURL, response, globalProgressBar)
+
                 response.raise_for_status()
 
                 again = False
             except:
                 again = True
 
-                if verbose:
+                if debugMode:
                     print("Trying again...\t(" + linkURL + ")")
                 time.sleep(timeBetweenRetries)
 
         if response.status_code != 200:
-            if retries > 1 and verbose:
+            if retries > 1 and debugMode:
                 print("Last try on...\t(" + linkURL + ")")
 
             try:
-                response = requests.get(linkURL, timeout=5)
+                response = requests.get(linkURL, timeout=5, stream=printVerbose)
+                if printVerbose:
+                    self.__printResponseProgressBar(linkURL, response, globalProgressBar)
+
                 response.raise_for_status()
             except requests.exceptions.HTTPError as errh:
                 return False, "HTTP Error: " + str(errh), response.content
@@ -162,7 +177,7 @@ class LocalPyPIController:
 
         return updatedHTML
 
-    def _downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str, file: TextIOWrapper):
+    def _downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str, file: TextIOWrapper, printVerbose=False):
         updatedHTML: str = indexHTML
 
         actuallyDownloadedPackages: int = 0
@@ -172,9 +187,9 @@ class LocalPyPIController:
         else:
             print(str(len(packagesToDownload)) + " new packages available in the remote.")
 
-            with tqdm(total=len(packagesToDownload), desc="Download") as progressBar:
+            with tqdm(total=len(packagesToDownload), desc="Download", ncols=100, position=0, leave=True, colour="green") as progressBar:
                 for fileName, fileLink in packagesToDownload.items():
-                    ok, status, content = self._getLink(fileLink)
+                    ok, status, content = self._getLink(fileLink, printVerbose=printVerbose, globalProgressBar=progressBar)
                     if not ok:
                         print("\nUNABLE TO DOWNLOAD PACKAGE '" + fileName + "' (URL: " + fileLink + ")\n\tSTATUS: " + status + "\n")
                     else:
@@ -190,14 +205,21 @@ class LocalPyPIController:
         print()
         print(str(actuallyDownloadedPackages) + "/" + str(len(packagesToDownload)) + " downloaded.")
 
+
 class Add(LocalPyPIController):
     def __init__(self):
         LocalPyPIController.__init__(self)
+
+        self._printVerbose: bool
 
         self._onlySources: bool
         self._includeDevs: bool
         self._includeRCs: bool
         self._includePlatformSpecific: bool
+
+    @property
+    def printVerbose(self):
+        return self._printVerbose
 
     @property
     def onlySources(self):
@@ -214,6 +236,10 @@ class Add(LocalPyPIController):
     @property
     def includePlatformSpecific(self):
         return self._includePlatformSpecific
+
+    @printVerbose.setter
+    def printVerbose(self, new_printVerbose: bool):
+        self._printVerbose = new_printVerbose
 
     @onlySources.setter
     def onlySources(self, new_onlySources: bool):
@@ -234,6 +260,8 @@ class Add(LocalPyPIController):
     def parseScriptArguments(self, args: argparse.ArgumentParser):
         LocalPyPIController.parseScriptArguments(self, args)
 
+        self.printVerbose = args.printVerbose
+
         self.onlySources = args.onlySources
         self.includeDevs = args.includeDevs
         self.includeRCs = args.includeRCs
@@ -248,7 +276,7 @@ class Add(LocalPyPIController):
     def validPackageName(self) -> bool:
         """Checks whether the package link exists or not. If not, it returns False. True otherwise."""
 
-        ok, status, _ = self._getLink(self._remotePypiBaseDir + self.packageName, False)
+        ok, status, _ = self._getLink(self._remotePypiBaseDir + self.packageName)
         if not ok:
             print(status)
             return False
@@ -314,7 +342,7 @@ class Add(LocalPyPIController):
         with open(self.packageHTMLFileFullName, "w") as packageHTML_file:
             packageHTML_file.write(packageBaseHTML)
 
-            self._downloadFilesInLocalPath(linksToDownload, packageBaseHTML, packageHTML_file)
+            self._downloadFilesInLocalPath(linksToDownload, packageBaseHTML, packageHTML_file, printVerbose=self.printVerbose)
 
 
 class Update(Add):
@@ -368,7 +396,7 @@ class Update(Add):
         newPackagesToDownload: Dict[str, str] = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
 
         with open(self.packageHTMLFileFullName, "r+") as pypiLocalIndexFile:
-            self._downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, pypiLocalIndexFile)
+            self._downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, pypiLocalIndexFile, printVerbose=self.printVerbose)
 
 
 class Remove(LocalPyPIController):
@@ -415,16 +443,16 @@ class List(LocalPyPIController):
         if self.packageName == "":
             with open(self.baseHTMLFileFullName, "r") as baseHTMLFile:
                 htmlString = baseHTMLFile.read()
-            
+
             printMessage = "Found {} packages:"
         else:
             with open(self.packageHTMLFileFullName, "r") as packageHTMLFile:
                 htmlString = packageHTMLFile.read()
-            
+
             printMessage = "Found {} files for package '" + self.packageName + "':"
 
         packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(htmlString)
 
-        print(printMessage.format(len(packagesDict)))        
+        print(printMessage.format(len(packagesDict)))
         for key, _ in packagesDict.items():
             print(key)
