@@ -13,6 +13,8 @@ class AddEP:
         parser.add_argument("-p", "--index-path", dest="pypiLocalPath", type=str, default=os.getenv("PYPICKUP_INDEX_PATH", default="./.pypickup/"), help="Local root path in which the package from the PyPI repository will be downloaded.")
 
         parser.add_argument("-v", "--verbose", dest="printVerbose", default=False, action="store_true", help="Prints the downloads in a more verbose fashion. WARNING! It slows down the execution.")
+        parser.add_argument("--show-retries", dest="showRetries", default=False, action="store_true", help="Shows the retries in case there are any (e.g. due to a faulty network connection.")
+
         parser.add_argument("-s", "--only-src", dest="onlySources", default=False, action="store_true", help="Download only the source files (.zip and .tar.gz). Disabled by default.")
         parser.add_argument("--dev", dest="includeDevs", default=False, action="store_true", help="Download also the new development releases (alpha, betas), which are not included by default.")
         parser.add_argument("--rc", dest="includeRCs", default=False, action="store_true", help="Download also the release candidates (rc), which are not included by default.")

@@ -111,14 +111,14 @@ class LocalPyPIController:
 
         return self._htmlManager.existsHTMLEntry(baseHTMLStr, "a", self.packageName)
 
-    def __printResponseProgressBar(self, linkURL: str, response: requests.Response, globalProgressBar: tqdm = None, chunkSize: int = 4):
+    def __printResponseProgressBar(self, linkURL: str, response: requests.Response, chunkSize: int = 4):
         """The chunkSize defines the speed at which the response content is consumed, so it actually works as a bottleneck. The smaller, the slower."""
 
         with tqdm.wrapattr(open(os.devnull, "wb"), "write", miniters=1, position=1, leave=False, desc=linkURL.split("/")[-1].split("#")[0], total=int(response.headers.get("content-length", 0)), ncols=100) as fout:
             for chunk in response.iter_content(chunk_size=chunkSize):
                 fout.write(chunk)
 
-    def _getLink(self, linkURL: str, debugMode: bool = True, printVerbose=False, retries: int = 10, timeBetweenRetries: float = 0.5, globalProgressBar: tqdm = None) -> Tuple[bool, str, bytes]:
+    def _getLink(self, linkURL: str, printVerbose: bool = False, showRetries: bool = False, retries: int = 10, timeBetweenRetries: float = 0.5) -> Tuple[bool, str, bytes]:
         response: requests.Response = requests.Response()
 
         retriesCounter: int = retries
@@ -133,7 +133,7 @@ class LocalPyPIController:
                 responseContent: str = response.content
 
                 if printVerbose:
-                    self.__printResponseProgressBar(linkURL, response, globalProgressBar)
+                    self.__printResponseProgressBar(linkURL, response)
 
                 response.raise_for_status()
 
@@ -141,18 +141,18 @@ class LocalPyPIController:
             except:
                 again = True
 
-                if debugMode:
+                if showRetries:
                     print("Trying again...\t(" + linkURL + ")")
                 time.sleep(timeBetweenRetries)
 
         if response.status_code != 200:
-            if retries > 1 and debugMode:
+            if retries > 1 and showRetries:
                 print("Last try on...\t(" + linkURL + ")")
 
             try:
                 response = requests.get(linkURL, timeout=5, stream=printVerbose)
                 if printVerbose:
-                    self.__printResponseProgressBar(linkURL, response, globalProgressBar)
+                    self.__printResponseProgressBar(linkURL, response)
 
                 response.raise_for_status()
             except requests.exceptions.HTTPError as errh:
@@ -177,7 +177,7 @@ class LocalPyPIController:
 
         return updatedHTML
 
-    def _downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str, file: TextIOWrapper, printVerbose=False):
+    def _downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str, file: TextIOWrapper, printVerbose: bool = False, showRetries: bool = False):
         updatedHTML: str = indexHTML
 
         actuallyDownloadedPackages: int = 0
@@ -189,7 +189,7 @@ class LocalPyPIController:
 
             with tqdm(total=len(packagesToDownload), desc="Download", ncols=100, position=0, leave=True, colour="green") as progressBar:
                 for fileName, fileLink in packagesToDownload.items():
-                    ok, status, content = self._getLink(fileLink, printVerbose=printVerbose, globalProgressBar=progressBar)
+                    ok, status, content = self._getLink(fileLink, printVerbose=printVerbose, showRetries=showRetries)
                     if not ok:
                         print("\nUNABLE TO DOWNLOAD PACKAGE '" + fileName + "' (URL: " + fileLink + ")\n\tSTATUS: " + status + "\n")
                     else:
@@ -211,6 +211,7 @@ class Add(LocalPyPIController):
         LocalPyPIController.__init__(self)
 
         self._printVerbose: bool
+        self._showRetries: bool
 
         self._onlySources: bool
         self._includeDevs: bool
@@ -220,6 +221,10 @@ class Add(LocalPyPIController):
     @property
     def printVerbose(self):
         return self._printVerbose
+
+    @property
+    def showRetries(self):
+        return self._showRetries
 
     @property
     def onlySources(self):
@@ -236,6 +241,10 @@ class Add(LocalPyPIController):
     @property
     def includePlatformSpecific(self):
         return self._includePlatformSpecific
+
+    @showRetries.setter
+    def showRetries(self, new_showRetries: bool):
+        self._showRetries = new_showRetries
 
     @printVerbose.setter
     def printVerbose(self, new_printVerbose: bool):
@@ -261,6 +270,7 @@ class Add(LocalPyPIController):
         LocalPyPIController.parseScriptArguments(self, args)
 
         self.printVerbose = args.printVerbose
+        self.showRetries = args.showRetries
 
         self.onlySources = args.onlySources
         self.includeDevs = args.includeDevs
@@ -342,7 +352,7 @@ class Add(LocalPyPIController):
         with open(self.packageHTMLFileFullName, "w") as packageHTML_file:
             packageHTML_file.write(packageBaseHTML)
 
-            self._downloadFilesInLocalPath(linksToDownload, packageBaseHTML, packageHTML_file, printVerbose=self.printVerbose)
+            self._downloadFilesInLocalPath(linksToDownload, packageBaseHTML, packageHTML_file, printVerbose=self.printVerbose, showRetries=self.showRetries)
 
 
 class Update(Add):
@@ -396,7 +406,7 @@ class Update(Add):
         newPackagesToDownload: Dict[str, str] = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
 
         with open(self.packageHTMLFileFullName, "r+") as pypiLocalIndexFile:
-            self._downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, pypiLocalIndexFile, printVerbose=self.printVerbose)
+            self._downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, pypiLocalIndexFile, printVerbose=self.printVerbose, showRetries=self.showRetries)
 
 
 class Remove(LocalPyPIController):
