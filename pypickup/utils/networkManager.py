@@ -8,8 +8,12 @@ from tqdm import tqdm
 
 class NetworkManager:
 
+    """
+    A class used to download links in a proper way. Implements a retry system (e.g. in case the connection fails), and a progress bar (by means of the tqdm library) for the link to retrieve.
+    """
+
     def __init__(self):
-        return None
+        pass
 
     def __printResponseProgressBar(self, linkURL: str, response: requests.Response, chunkSize: int = 4):
         """The chunkSize defines the speed at which the response content is consumed, so it actually works as a bottleneck. The smaller, the slower."""
@@ -30,7 +34,7 @@ class NetworkManager:
 
             try:
                 response = requests.get(linkURL, timeout=5, stream=printVerbose)
-                responseContent: str = response.content
+                responseContent: str = response.content     # DO NOT DELETE! This is necessary to fetch the response before printing the response in the progress bar and not be consumed.
 
                 if printVerbose:
                     self.__printResponseProgressBar(linkURL, response)
