@@ -273,6 +273,13 @@ class HTMLManager:
 
         return resultingHTML
 
+    def existsHTMLEntry(self, htmlString: str, tagName: str, entryText: str) -> bool:
+        soup = BeautifulSoup(htmlString, "html.parser")
+        
+        if soup.find(tagName, string=entryText):
+            return True
+        return False
+
     def insertHTMLEntry(self, htmlString: str, tagName: str, newEntryText: str, additionalAttrs: Dict[str, str]) -> Tuple[bool, str]:
         """Appends a new element <'tagName'> into the 'htmlString' body, with the attributes in 'attributes'. Returns whether the entry already existed in the htmlString, and the updated htmlString."""
 

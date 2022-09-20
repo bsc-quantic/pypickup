@@ -109,13 +109,7 @@ class LocalPyPIController:
         with open(self.baseHTMLFileFullName, "r") as baseHTMLFile:
             baseHTMLStr: str = baseHTMLFile.read()
 
-        # ToDo: this is super expensive. Just use the htmlmanager to ".find()" the package in the baseHTMLStr
-        packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(baseHTMLStr)
-
-        if self.packageName in packagesDict:
-            return True
-        else:
-            return False
+        return self._htmlManager.existsHTMLEntry(baseHTMLStr, "a", self.packageName)
 
     def _getLink(self, linkURL: str, verbose: bool = True, retries: int = 10, timeBetweenRetries: float = 0.5) -> Tuple[bool, str, bytes]:
         response: requests.Response = requests.Response()
