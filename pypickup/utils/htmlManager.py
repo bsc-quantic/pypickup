@@ -1,10 +1,8 @@
-from fileinput import filename
 import os
 
 import re
 
 from typing import Tuple, Dict, List
-from xml.etree.ElementInclude import include
 
 from bs4 import BeautifulSoup, element as bs4Element
 import wheel_filename
@@ -275,7 +273,7 @@ class HTMLManager:
 
     def existsHTMLEntry(self, htmlString: str, tagName: str, entryText: str) -> bool:
         soup = BeautifulSoup(htmlString, "html.parser")
-        
+
         if soup.find(tagName, string=entryText):
             return True
         return False
@@ -301,7 +299,7 @@ class HTMLManager:
         """Removes the element identified by a 'tagName' and 'entryText' from the 'htmlString'. Returns whether the entry already existed in the htmlString, and the updated htmlString."""
 
         soup = BeautifulSoup(htmlString, "html.parser")
-        
+
         tagToRemove = soup.find(tagName, string=entryText)
         if not tagToRemove:
             return False, htmlString
@@ -338,7 +336,7 @@ class HTMLManager:
 
         if re.search(rf"-any.whl", fileName):
             return False
-        
+
         return True
 
     def filterInHTML(self, htmlContent: str, regexZIPAndTars: str) -> str:
