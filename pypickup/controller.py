@@ -1,16 +1,14 @@
 #! /usr/bin/python
 from io import TextIOWrapper
 import os
-
 import argparse
 import shutil
-import time
-from typing import Tuple, Dict
+from typing import Dict
 
-import requests
 from tqdm import tqdm
 
 from pypickup.utils.htmlManager import HTMLManager
+from pypickup.utils.networkManager import NetworkManager
 
 
 class LocalPyPIController:
@@ -20,6 +18,7 @@ class LocalPyPIController:
     """
 
     _htmlManager = HTMLManager()
+    _networkManager = NetworkManager()
 
     _baseHTMLFileName: str = "index.html"
     _packageHTMLFileName: str = "index.html"
@@ -111,61 +110,6 @@ class LocalPyPIController:
 
         return self._htmlManager.existsHTMLEntry(baseHTMLStr, "a", self.packageName)
 
-    def __printResponseProgressBar(self, linkURL: str, response: requests.Response, chunkSize: int = 4):
-        """The chunkSize defines the speed at which the response content is consumed, so it actually works as a bottleneck. The smaller, the slower."""
-
-        with tqdm.wrapattr(open(os.devnull, "wb"), "write", miniters=1, position=1, leave=False, desc=linkURL.split("/")[-1].split("#")[0], total=int(response.headers.get("content-length", 0)), ncols=100) as fout:
-            for chunk in response.iter_content(chunk_size=chunkSize):
-                fout.write(chunk)
-
-    def _getLink(self, linkURL: str, printVerbose: bool = False, showRetries: bool = False, retries: int = 10, timeBetweenRetries: float = 0.5) -> Tuple[bool, str, bytes]:
-        response: requests.Response = requests.Response()
-
-        retriesCounter: int = retries
-        again: bool = True
-        while again:
-            retriesCounter -= 1
-            if retriesCounter == 0:
-                break
-
-            try:
-                response = requests.get(linkURL, timeout=5, stream=printVerbose)
-                responseContent: str = response.content
-
-                if printVerbose:
-                    self.__printResponseProgressBar(linkURL, response)
-
-                response.raise_for_status()
-
-                again = False
-            except:
-                again = True
-
-                if showRetries:
-                    print("Trying again...\t(" + linkURL + ")")
-                time.sleep(timeBetweenRetries)
-
-        if response.status_code != 200:
-            if retries > 1 and showRetries:
-                print("Last try on...\t(" + linkURL + ")")
-
-            try:
-                response = requests.get(linkURL, timeout=5, stream=printVerbose)
-                if printVerbose:
-                    self.__printResponseProgressBar(linkURL, response)
-
-                response.raise_for_status()
-            except requests.exceptions.HTTPError as errh:
-                return False, "HTTP Error: " + str(errh), response.content
-            except requests.exceptions.ConnectionError as errc:
-                return False, "Error Connecting: " + str(errc), response.content
-            except requests.exceptions.Timeout as errt:
-                return False, "Timeout Error: " + str(errt), response.content
-            except requests.exceptions.RequestException as err:
-                return False, "OOps: Something Else: " + str(err), response.content
-
-        return True, "200 OK", response.content
-
     def _writeFileFromTheStart(self, file: TextIOWrapper, textToWrite: str):
         file.seek(0)
         file.truncate(0)
@@ -189,7 +133,7 @@ class LocalPyPIController:
 
             with tqdm(total=len(packagesToDownload), desc="Download", ncols=100, position=0, leave=True, colour="green") as progressBar:
                 for fileName, fileLink in packagesToDownload.items():
-                    ok, status, content = self._getLink(fileLink, printVerbose=printVerbose, showRetries=showRetries)
+                    ok, status, content = self._networkManager.getLink(fileLink, printVerbose=printVerbose, showRetries=showRetries)
                     if not ok:
                         print("\nUNABLE TO DOWNLOAD PACKAGE '" + fileName + "' (URL: " + fileLink + ")\n\tSTATUS: " + status + "\n")
                     else:
@@ -286,7 +230,7 @@ class Add(LocalPyPIController):
     def validPackageName(self) -> bool:
         """Checks whether the package link exists or not. If not, it returns False. True otherwise."""
 
-        ok, status, _ = self._getLink(self._remotePypiBaseDir + self.packageName)
+        ok, status, _ = self._networkManager.getLink(self._remotePypiBaseDir + self.packageName)
         if not ok:
             print(status)
             return False
@@ -338,7 +282,7 @@ class Add(LocalPyPIController):
     def addPackage(self):
         """Downloads all the files for the required package 'packageName', i.e. all the .whl, the .zip and the .tar.gz if necessary."""
 
-        ok, status, pypiPackageHTML = self._getLink(self._remotePypiBaseDir + self.packageName)
+        ok, status, pypiPackageHTML = self._networkManager.getLink(self._remotePypiBaseDir + self.packageName)
         if not ok:
             print(status)
         else:
@@ -390,7 +334,7 @@ class Update(Add):
     def synchronizeWithRemote(self):
         """Synchronize the self.packageName against the PyPI remote repository. It adds the new available packages to the packageName/index.html and download them. Assumes the folders exists."""
 
-        ok, status, pypiRemoteIndex = self._getLink(self._remotePypiBaseDir + self.packageName)
+        ok, status, pypiRemoteIndex = self._networkManager.getLink(self._remotePypiBaseDir + self.packageName)
         if not ok:
             print(status)
         else:
