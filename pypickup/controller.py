@@ -415,18 +415,22 @@ class List(LocalPyPIController):
     def listPackages(self):
         """Lists all the packages in the root HTML index, if self.packageName == None. Lists the downloaded files for package self.packageName otherwise."""
 
+        printMessage: str = ""
+
         htmlString: str = ""
         if self.packageName == "":
             with open(self.baseHTMLFileFullName, "r") as baseHTMLFile:
                 htmlString = baseHTMLFile.read()
-
+            
+            printMessage = "Found {} packages:"
         else:
             with open(self.packageHTMLFileFullName, "r") as packageHTMLFile:
                 htmlString = packageHTMLFile.read()
+            
+            printMessage = "Found {} files for package '" + self.packageName + "':"
 
         packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(htmlString)
 
-        # ToDo: this print should be not always like this, it depends on whether the self.packageName is empty or not.
-        print("Found " + str(len(packagesDict)) + " files for package '" + self.packageName + "':")
+        print(printMessage.format(len(packagesDict)))        
         for key, _ in packagesDict.items():
             print(key)
