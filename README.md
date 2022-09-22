@@ -3,9 +3,24 @@
 A tool to download packages from PyPI and save them locally, building a directory tree that fulfills [PEP 503](https://peps.python.org/pep-0503/). Properly configured, `pip` will install packages from there as if it was downloading them from the PyPI repository itself.
 
 For example, the following commands will download all final versions (no `dev` and no `rc` versions), source distributions of `numpy` into the `.pypickup` folder, and then install the latest compatible version from there.
+
 ```
 pypickup add -s -p ./.pypickup numpy
 pip install --index-url ./.pypickup numpy
+```
+
+## Install
+
+To install pypickup you can do:
+
+```
+pip install pypickup
+```
+
+Alternatively, you can download this repository and perform an editable installation:
+
+```
+pip install --editable .
 ```
 
 ## Commands
@@ -60,6 +75,10 @@ To add new commands to the application, follow these steps:
     - Implement the getters and setters for the new command, which should be used in your new class.
 
     Your new class should parse **all** the arguments your command is going to use in your own method `parseScriptArguments(...)`. If some of the arguments already exist (from other commands), you use them but you should parse them anyway in your `parseScriptArguments(...)`, even if this implies "repeating" some code. This is the best approach for an application open to new features.
+
+    Apart from the main controller file, there are 2 other controllers that should be considered properly when adding new commands/features.
+    - htmlManager.py: in charge of everything related with the HTML files management. It already include methods to find, insert and delete tags into an HTML string body.
+    - networkManager.py: in charge of everything related with the network (e.g. getting URL links).
 
 ### Editable installation
 
