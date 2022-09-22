@@ -48,7 +48,22 @@ pypickup list numpy
 
 ## Development
 
-In order to speed up development, we recommend an editable installation:
+### Add new commands
+
+To add new commands to the application, follow these steps:
+
+1. Create a new \[commandName\].py file with a class named \[commandName\]EP (standing for EntryPoint), which should include 2 main methods: `init_subparser(...)` and `run(...)`. These methods will be automatically called by the `cli()` method at cli.py, which will be in turn called by the main script at \_\_main\_\_.py.
+2. Add the new command entry in the pyproject.toml file, in the list [project.entry-points."pypickup.cmd"].
+3. Add the corresponding export in the pypickup/cmd/\_\_init\_\_.py file.
+4. Finally, create a new class in the controller.py that will implement the specific methods for that command. This new class should inherit from the general-purpose class LocalPyPIController and should implement, at least, a method `parseScriptArguments(...)`. This class LocalPyPIController should:
+    - Add in their \_\_init\_\_(self) method the arguments for the new command you are coding.
+    - Implement the getters and setters for the new command, which should be used in your new class.
+
+    Your new class should parse **all** the arguments your command is going to use in your own method `parseScriptArguments(...)`. If some of the arguments already exist (from other commands), you use them but you should parse them anyway in your `parseScriptArguments(...)`, even if this implies "repeating" some code. This is the best approach for an application open to new features.
+
+### Editable installation
+
+In order to speed up the development, we recommend an editable installation:
 
 ```
 pip install --editable .
