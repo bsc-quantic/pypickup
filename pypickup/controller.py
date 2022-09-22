@@ -29,11 +29,22 @@ class LocalPyPIController:
     _dryRunsTmpDir = "./.pypickup_tmp/"
 
     def __init__(self):
-        self._packageName: str
-        self._pypiLocalPath: str
+        self._packageName: str = None
+        self._pypiLocalPath: str = None
 
-        self._baseHTMLFileFullName: str
-        self._packageLocalPath: str
+        self._baseHTMLFileFullName: str = None
+        self._packageHTMLFileFullName: str = None
+        self._packageLocalPath: str = None
+
+        self._printVerbose: bool = None
+        self._showRetries: bool = None
+
+        self._onlySources: bool = None
+        self._includeDevs: bool = None
+        self._includeRCs: bool = None
+        self._includePlatformSpecific: bool = None
+
+        self._dryRun: bool = None
 
     def __del__(self):
         self._removeDir(self._dryRunsTmpDir, True)
@@ -51,6 +62,10 @@ class LocalPyPIController:
         return self._baseHTMLFileFullName
 
     @property
+    def packageHTMLFileFullName(self):
+        return self._packageHTMLFileFullName
+
+    @property
     def packageLocalPath(self):
         return self._packageLocalPath
 
@@ -58,21 +73,93 @@ class LocalPyPIController:
     def remotePyPIRepository(self):
         return self._remotePypiBaseDir
 
+    @property
+    def printVerbose(self):
+        return self._printVerbose
+
+    @property
+    def showRetries(self):
+        return self._showRetries
+
+    @property
+    def onlySources(self):
+        return self._onlySources
+
+    @property
+    def includeDevs(self):
+        return self._includeDevs
+
+    @property
+    def includeRCs(self):
+        return self._includeRCs
+
+    @property
+    def includePlatformSpecific(self):
+        return self._includePlatformSpecific
+
+    @property
+    def dryRun(self):
+        return self._dryRun
+
     @packageName.setter
     def packageName(self, new_PackageName: str):
         self._packageName = new_PackageName
+
+        # Propagate changes
+        self.packageLocalPath = os.path.join(self._pypiLocalPath, self._packageName) + "/"
+        self.packageHTMLFileFullName = os.path.join(self.packageLocalPath, self._packageHTMLFileName)
 
     @pypiLocalPath.setter
     def pypiLocalPath(self, new_PyPiLocalPath: str):
         self._pypiLocalPath = new_PyPiLocalPath
 
+        self._pypiLocalPath = self._pypiLocalPath.replace("\\", "/")
+
+        # Propagate changes
+        self.baseHTMLFileFullName = os.path.join(self._pypiLocalPath, self._baseHTMLFileName)
+
+        self.packageLocalPath = os.path.join(self._pypiLocalPath, self.packageName) + "/"
+        self.packageHTMLFileFullName = os.path.join(self.packageLocalPath, self._packageHTMLFileName)
+
     @baseHTMLFileFullName.setter
     def baseHTMLFileFullName(self, new_baseHTMLFileFullName: str):
         self._baseHTMLFileFullName = new_baseHTMLFileFullName
 
+    @packageHTMLFileFullName.setter
+    def packageHTMLFileFullName(self, new_packageHTMLFileFullName: str):
+        self._packageHTMLFileFullName = new_packageHTMLFileFullName
+
     @packageLocalPath.setter
     def packageLocalPath(self, new_packageLocalPath: str):
         self._packageLocalPath = new_packageLocalPath
+
+    @showRetries.setter
+    def showRetries(self, new_showRetries: bool):
+        self._showRetries = new_showRetries
+
+    @printVerbose.setter
+    def printVerbose(self, new_printVerbose: bool):
+        self._printVerbose = new_printVerbose
+
+    @onlySources.setter
+    def onlySources(self, new_onlySources: bool):
+        self._onlySources = new_onlySources
+
+    @includeDevs.setter
+    def includeDevs(self, new_includeDevs: bool):
+        self._includeDevs = new_includeDevs
+
+    @includeRCs.setter
+    def includeRCs(self, new_includeRCs: bool):
+        self._includeRCs = new_includeRCs
+
+    @includePlatformSpecific.setter
+    def includePlatformSpecific(self, new_includePlatformSpecific: bool):
+        self._includePlatformSpecific = new_includePlatformSpecific
+
+    @dryRun.setter
+    def dryRun(self, new_dryRun: bool):
+        self._dryRun = new_dryRun
 
     def _removeDir(self, directory: str, recursively: bool = False):
         if os.path.exists(directory):
@@ -86,18 +173,6 @@ class LocalPyPIController:
 
         self.packageName = args.packageName
         self.pypiLocalPath = args.pypiLocalPath
-
-        if hasattr(args, "dryRun"):
-            if args.dryRun:
-                shutil.copytree(self.pypiLocalPath, self._dryRunsTmpDir)
-                self.pypiLocalPath = self._dryRunsTmpDir
-
-        self.pypiLocalPath = self.pypiLocalPath.replace("\\", "/")
-
-        self.baseHTMLFileFullName = os.path.join(self.pypiLocalPath, self._baseHTMLFileName)
-
-        self.packageLocalPath = os.path.join(self.pypiLocalPath, self.packageName) + "/"
-        self.packageHTMLFileFullName = os.path.join(self.packageLocalPath, self._packageHTMLFileName)
 
     def packageExists(self) -> bool:
         """Returns whether the self._packageName already exists in the self._pypiLocalPath. If the local repository has not even been created previously, returns False."""
@@ -154,65 +229,10 @@ class Add(LocalPyPIController):
     def __init__(self):
         LocalPyPIController.__init__(self)
 
-        self._printVerbose: bool
-        self._showRetries: bool
-
-        self._onlySources: bool
-        self._includeDevs: bool
-        self._includeRCs: bool
-        self._includePlatformSpecific: bool
-
-    @property
-    def printVerbose(self):
-        return self._printVerbose
-
-    @property
-    def showRetries(self):
-        return self._showRetries
-
-    @property
-    def onlySources(self):
-        return self._onlySources
-
-    @property
-    def includeDevs(self):
-        return self._includeDevs
-
-    @property
-    def includeRCs(self):
-        return self._includeRCs
-
-    @property
-    def includePlatformSpecific(self):
-        return self._includePlatformSpecific
-
-    @showRetries.setter
-    def showRetries(self, new_showRetries: bool):
-        self._showRetries = new_showRetries
-
-    @printVerbose.setter
-    def printVerbose(self, new_printVerbose: bool):
-        self._printVerbose = new_printVerbose
-
-    @onlySources.setter
-    def onlySources(self, new_onlySources: bool):
-        self._onlySources = new_onlySources
-
-    @includeDevs.setter
-    def includeDevs(self, new_includeDevs: bool):
-        self._includeDevs = new_includeDevs
-
-    @includeRCs.setter
-    def includeRCs(self, new_includeRCs: bool):
-        self._includeRCs = new_includeRCs
-
-    @includePlatformSpecific.setter
-    def includePlatformSpecific(self, new_includePlatformSpecific: bool):
-        self._includePlatformSpecific = new_includePlatformSpecific
-
     def parseScriptArguments(self, args: argparse.ArgumentParser):
         LocalPyPIController.parseScriptArguments(self, args)
 
+        # 1. Set all the params we are going to use (let the ones we don't to None):
         self.printVerbose = args.printVerbose
         self.showRetries = args.showRetries
 
@@ -221,11 +241,18 @@ class Add(LocalPyPIController):
         self.includeRCs = args.includeRCs
         self.includePlatformSpecific = args.includePlatformSpecific
 
+        self.dryRun = args.dryRun
+
+        # 2. Use only the ones we have set:
         self._htmlManager.setFlags(self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific)
 
         if (self.includeDevs or self.includeRCs) and self._htmlManager.areWheelFiltersEnabled():
             print("\tWARNING! Development releases (devX) or release candidates (RCs) flags are enabled, as well as the wheel filters, so they could be discarded anyway. This is caused because of the order of application: (1st) flags, (2nd) wheel filters.")
             print("\tPLEASE, CHECK OUT YOUR WHEEL FILTERS.")
+
+        if self.dryRun:
+            shutil.copytree(self.pypiLocalPath, self._dryRunsTmpDir)
+            self.pypiLocalPath = self._dryRunsTmpDir
 
     def validPackageName(self) -> bool:
         """Checks whether the package link exists or not. If not, it returns False. True otherwise."""
@@ -299,12 +326,34 @@ class Add(LocalPyPIController):
             self._downloadFilesInLocalPath(linksToDownload, packageBaseHTML, packageHTML_file, printVerbose=self.printVerbose, showRetries=self.showRetries)
 
 
-class Update(Add):
+class Update(LocalPyPIController):
     def __init__(self):
         Add.__init__(self)
 
     def parseScriptArguments(self, args: argparse.ArgumentParser):
-        Add.parseScriptArguments(self, args)
+        LocalPyPIController.parseScriptArguments(self, args)
+
+        # 1. Set all the params we are going to use (let the ones we don't to None):
+        self.printVerbose = args.printVerbose
+        self.showRetries = args.showRetries
+
+        self.onlySources = args.onlySources
+        self.includeDevs = args.includeDevs
+        self.includeRCs = args.includeRCs
+        self.includePlatformSpecific = args.includePlatformSpecific
+
+        self.dryRun = args.dryRun
+
+        # 2. Use only the ones we have set:
+        self._htmlManager.setFlags(self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific)
+
+        if (self.includeDevs or self.includeRCs) and self._htmlManager.areWheelFiltersEnabled():
+            print("\tWARNING! Development releases (devX) or release candidates (RCs) flags are enabled, as well as the wheel filters, so they could be discarded anyway. This is caused because of the order of application: (1st) flags, (2nd) wheel filters.")
+            print("\tPLEASE, CHECK OUT YOUR WHEEL FILTERS.")
+
+        if self.dryRun:
+            shutil.copytree(self.pypiLocalPath, self._dryRunsTmpDir)
+            self.pypiLocalPath = self._dryRunsTmpDir
 
     def __checkPackagesInLocalButNotInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> str:
         additionalPackagesMessage: str = ""
@@ -359,6 +408,14 @@ class Remove(LocalPyPIController):
 
     def parseScriptArguments(self, args: argparse.ArgumentParser):
         LocalPyPIController.parseScriptArguments(self, args)
+
+        # 1. Set all the params we are going to use (let the ones we don't to None):
+        self.dryRun = args.dryRun
+
+        # 2. Use only the ones we have set:
+        if self.dryRun:
+            shutil.copytree(self.pypiLocalPath, self._dryRunsTmpDir)
+            self.pypiLocalPath = self._dryRunsTmpDir
 
     def removePackage(self):
         """Removes the self.packageName from the local repository. Assumes it exists."""
