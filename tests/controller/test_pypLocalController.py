@@ -5,6 +5,9 @@ import time
 import argparse
 import tempfile
 
+import sys
+sys.path.append(".")
+
 from pypickup.controller import LocalPyPIController, Add, Update, Remove, List
 
 # GENERAL VARIABLES #
