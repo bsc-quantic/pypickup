@@ -281,3 +281,5 @@ $RECYCLE.BIN/
 .python-version
 
 localPyPI
+.pypickup/
+.vscode/
