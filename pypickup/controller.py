@@ -24,7 +24,7 @@ class LocalPyPIController:
     _packageHTMLFileName: str = "index.html"
     _remotePypiBaseDir: str = "https://pypi.org/simple/"
 
-    _regexZIPAndTars = "^(.*)\.(zip|tar.gz|tar.bz2|tar.xz|tar.Z|tar)$"
+    _regexZIPAndTars = r"^(.*)\.(zip|tar.gz|tar.bz2|tar.xz|tar.Z|tar)$"
 
     _dryRunsTmpDir = "./.pypickup_tmp/"
 
@@ -106,6 +106,9 @@ class LocalPyPIController:
         self._packageName = new_PackageName
 
         # Propagate changes
+        if self._pypiLocalPath == None:
+            self._pypiLocalPath = ""
+
         self.packageLocalPath = os.path.join(self._pypiLocalPath, self._packageName) + "/"
         self.packageHTMLFileFullName = os.path.join(self.packageLocalPath, self._packageHTMLFileName)
 
@@ -114,6 +117,9 @@ class LocalPyPIController:
         self._pypiLocalPath = new_PyPiLocalPath
 
         self._pypiLocalPath = self._pypiLocalPath.replace("\\", "/")
+
+        if "/" not in self._pypiLocalPath:
+            self._pypiLocalPath = self.pypiLocalPath + "/"
 
         # Propagate changes
         self.baseHTMLFileFullName = os.path.join(self._pypiLocalPath, self._baseHTMLFileName)
@@ -196,7 +202,7 @@ class LocalPyPIController:
 
         return updatedHTML
 
-    def _downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str, file: TextIOWrapper, printVerbose: bool = False, showRetries: bool = False):
+    def _downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str, htmlFile: TextIOWrapper, printVerbose: bool = False, showRetries: bool = False):
         updatedHTML: str = indexHTML
 
         actuallyDownloadedPackages: int = 0
@@ -215,7 +221,7 @@ class LocalPyPIController:
                         with open(self.packageLocalPath + fileName, "wb") as f:
                             f.write(content)
 
-                        updatedHTML = self.__addPackageToIndex(updatedHTML, file, "./" + fileName, fileName)
+                        updatedHTML = self.__addPackageToIndex(updatedHTML, htmlFile, "./" + fileName, fileName)
 
                         actuallyDownloadedPackages += 1
 

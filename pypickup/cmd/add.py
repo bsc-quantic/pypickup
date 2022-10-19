@@ -28,7 +28,7 @@ class AddEP:
         for packageName in listOfPackages:
 
             args.packageName = packageName
-            print("Adding '" + packageName + "' to the local index:")
+            print("Adding '" + packageName + "' to the local index (" + os.path.abspath(args.pypiLocalPath) + "/" + "):")
 
             controllerInstance = Add()
             controllerInstance.parseScriptArguments(args)
