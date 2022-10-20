@@ -1,3 +1,5 @@
+![Testing status](https://github.com/UB-Quantic/pypickup/actions/workflows/python-app.yml/badge.svg)
+
 # pypickup
 
 A tool to download packages from PyPI and save them locally, building a directory tree that fulfills [PEP 503](https://peps.python.org/pep-0503/). Properly configured, `pip` will install packages from there as if it was downloading them from the PyPI repository itself.
