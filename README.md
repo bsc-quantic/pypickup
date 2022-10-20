@@ -1,4 +1,5 @@
-[![testing status](https://github.com/UB-Quantic/pypickup/actions/workflows/python-app.yml/badge.svg)](https://github.com/UB-Quantic/pypickup/actions/workflows/python-app.yml)
+[![Tests](https://github.com/UB-Quantic/pypickup/actions/workflows/python-testing.yml/badge.svg)](https://github.com/UB-Quantic/pypickup/actions/workflows/python-testing.yml)
+[![Coverage](https://github.com/UB-Quantic/pypickup/actions/workflows/python-coverage.yml/badge.svg)](https://github.com/UB-Quantic/pypickup/actions/workflows/python-coverage.yml)
 
 # pypickup
 
