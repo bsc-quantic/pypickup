@@ -1,4 +1,4 @@
-![Testing status](https://github.com/UB-Quantic/pypickup/actions/workflows/python-app.yml/badge.svg)
+[![testing status](https://github.com/UB-Quantic/pypickup/actions/workflows/python-app.yml/badge.svg)](https://github.com/UB-Quantic/pypickup/actions/workflows/python-app.yml)
 
 # pypickup
 
