@@ -12,6 +12,12 @@ pypickup add -s -p ./.pypickup numpy
 pip install --index-url ./.pypickup numpy
 ```
 
+In order to save yourself from typing the -p parameter every time, you can just set an env variable PYPICKUP_INDEX_PATH (which you can include in your ~/.bashrc file if you feel like it):
+
+```
+export PYPICKUP_INDEX_PATH=/usr/local/pypickup
+```
+
 ## Install
 
 To install pypickup you can do:
