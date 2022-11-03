@@ -66,8 +66,11 @@ class WheelsConfig:
 
         self._inOrOut: str = inOrOut_wheels
 
-        if "inFilters_wheels" in globals(): self._inFilters: Dict[str, List[str]] = inFilters_wheels
-        if "outFilters_wheels" in globals(): self._outFilters: Dict[str, List[str]] = outFilters_wheels
+        self._inFilters: Dict[str, List[str]] = None
+        self._outFilters: Dict[str, List[str]] = None
+
+        if "inFilters_wheels" in globals(): self._inFilters = inFilters_wheels
+        if "outFilters_wheels" in globals(): self._outFilters = outFilters_wheels
 
     @property
     def filtersEnabled(self):
