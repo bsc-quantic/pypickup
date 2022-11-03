@@ -1,19 +1,15 @@
-filtersEnabled_wheels = "no"
+filtersEnabled_wheels = "yes"   # yes/no
 
-inOrOut_wheels = "out"
+inOrOut_wheels = "out"          # in/out
 
-# ToDo: "(python_tags>=1.2 | python_tags==1.01) & version>=18.0 & #^cp\d*d-\d*.whl$ | #^cp\d*d-manylinux14.whl$"
-inFilters_wheels = {"version": [], "python_tags": [">=3.5"], "abi_tags": ["~cp36", "~cp37"], "platform_tags": ["~manylinux", "~win32", "~amd64"]}
+# ToDo: use regexs. e.g.: "(python_tags>=1.2 | python_tags==1.01) & version>=18.0 & #^cp\d*d-\d*.whl$ | #^cp\d*d-manylinux14.whl$"
 
-outFilters_wheels = {"version": ["~rc"], "python_tags": ["~pp", "~cp2", "<3.5"], "abi_tags": ["~mu"], "platform_tags": ["~i686", "~win32"]}
-
-# Attributes lists (https://peps.python.org/pep-0425/):
-# version: rc[X]
-# python_tags: py, cp, ip, pp, jy
-# abi_tags: [XX]m, [XX]u, [XX]d
-# platform_tags: win32, linux_i386, linux_x86_64
-#
-#   where X are numbers.
+outFilters_wheels = {
+    "version": [],
+    "python_tags": [],
+    "abi_tags": [],
+    "platform_tags": ["~macos"]
+}
 
 from typing import Dict, List
 
@@ -34,6 +30,33 @@ class WheelsConfig:
             into ">3.0".
 
     If a list for a specific field is empty, then that field is not used to either filter in or out the wheels.
+
+    
+    According to https://peps.python.org/pep-0425/, some attribute strings are:
+        version: rc[X]
+        python_tags: py, cp, ip, pp, jy
+        abi_tags: [XX]m, [XX]u, [XX]d
+        platform_tags: win32, linux_i386, i686, linux_x86_64, manylinux, macos, intel
+
+            where X are numbers.
+
+
+    #### EXAMPLES ####
+
+    inFilters_wheels = {
+        "version": [],
+        "python_tags": [">=3.5"],
+        "abi_tags": ["~cp36", "~cp37"],
+        "platform_tags": ["~manylinux", "~win32", "~amd64"]
+    }
+
+    outFilters_wheels = {
+        "version": ["~rc"],
+        "python_tags": ["~pp", "~cp2", "<3.5"],
+        "abi_tags": ["~mu"],
+        "platform_tags": ["~i686", "~win32"]
+    }
+
     """
 
     _incorrectInOrOutMessage: str = "Incorrect settings field 'inOrOut'! Set 'in' or 'out' in settings/wheelFilters.py."
@@ -43,8 +66,8 @@ class WheelsConfig:
 
         self._inOrOut: str = inOrOut_wheels
 
-        self._inFilters: Dict[str, List[str]] = inFilters_wheels
-        self._outFilters: Dict[str, List[str]] = outFilters_wheels
+        if "inFilters_wheels" in globals(): self._inFilters: Dict[str, List[str]] = inFilters_wheels
+        if "outFilters_wheels" in globals(): self._outFilters: Dict[str, List[str]] = outFilters_wheels
 
     @property
     def filtersEnabled(self):
