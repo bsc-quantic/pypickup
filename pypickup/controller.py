@@ -36,6 +36,8 @@ class LocalPyPIController:
         self._packageHTMLFileFullName: str = None
         self._packageLocalPath: str = None
 
+        self._printDefaultConfig: bool = None
+        self._printNonFiltered: bool = None
         self._printVerbose: bool = None
         self._showRetries: bool = None
 
@@ -72,6 +74,14 @@ class LocalPyPIController:
     @property
     def remotePyPIRepository(self):
         return self._remotePypiBaseDir
+
+    @property
+    def printDefaultConfig(self):
+        return self._printDefaultConfig
+
+    @property
+    def printNonFiltered(self):
+        return self._printNonFiltered
 
     @property
     def printVerbose(self):
@@ -139,13 +149,21 @@ class LocalPyPIController:
     def packageLocalPath(self, new_packageLocalPath: str):
         self._packageLocalPath = new_packageLocalPath
 
-    @showRetries.setter
-    def showRetries(self, new_showRetries: bool):
-        self._showRetries = new_showRetries
+    @printDefaultConfig.setter
+    def printDefaultConfig(self, new_printDefaultConfig: bool):
+        self._printDefaultConfig = new_printDefaultConfig
+
+    @printNonFiltered.setter
+    def printNonFiltered(self, new_printNonFiltered: bool):
+        self._printNonFiltered = new_printNonFiltered
 
     @printVerbose.setter
     def printVerbose(self, new_printVerbose: bool):
         self._printVerbose = new_printVerbose
+
+    @showRetries.setter
+    def showRetries(self, new_showRetries: bool):
+        self._showRetries = new_showRetries
 
     @onlySources.setter
     def onlySources(self, new_onlySources: bool):
@@ -179,6 +197,25 @@ class LocalPyPIController:
 
         self.packageName = args.packageName
         self.pypiLocalPath = args.pypiLocalPath
+
+    def printDefaultConfigIfRequired(self):
+        if self.printDefaultConfig:
+            print("")
+            print("DEFAULT CONFIGURATION VARIABLES:")
+            print("\tIndex path (current): " + self.pypiLocalPath)
+            print("")
+            print("\tBase HTML file: " + self._baseHTMLFileName)
+            print("\tPackage HTML file dir: " + self.packageHTMLFileFullName)
+            print("\tPython repository : " + self._remotePypiBaseDir)
+            print("")
+            print("\tDry runs path: " + self._dryRunsTmpDir)
+            print("\tIncluded zips and tars: " + self._regexZIPAndTars)
+            print("")
+            print("\tWheel filters enabled: " + str(self._htmlManager.areWheelFiltersEnabled()))
+            if self._htmlManager.areWheelFiltersEnabled():
+                print("\t\tIN filters: " + str(self._htmlManager._wheelsManager.wheelsConfig.inFilters))
+                print("\t\tOUT filters: " + str(self._htmlManager._wheelsManager.wheelsConfig.outFilters))
+            print("")
 
     def packageExists(self) -> bool:
         """Returns whether the self._packageName already exists in the self._pypiLocalPath. If the local repository has not even been created previously, returns False."""
@@ -239,6 +276,8 @@ class Add(LocalPyPIController):
         LocalPyPIController.parseScriptArguments(self, args)
 
         # 1. Set all the params we are going to use (let the ones we don't to None):
+        self.printDefaultConfig = args.printDefaultConfig
+        self.printNonFiltered = args.printNonFiltered
         self.printVerbose = args.printVerbose
         self.showRetries = args.showRetries
 
@@ -340,6 +379,8 @@ class Update(LocalPyPIController):
         LocalPyPIController.parseScriptArguments(self, args)
 
         # 1. Set all the params we are going to use (let the ones we don't to None):
+        self.printDefaultConfig = args.printDefaultConfig
+        self.printNonFiltered = args.printNonFiltered
         self.printVerbose = args.printVerbose
         self.showRetries = args.showRetries
 
