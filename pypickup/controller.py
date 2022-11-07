@@ -3,7 +3,7 @@ from io import TextIOWrapper
 import os
 import argparse
 import shutil
-from typing import Dict
+from typing import Dict, List
 
 from tqdm import tqdm
 
@@ -37,7 +37,7 @@ class LocalPyPIController:
         self._packageLocalPath: str = None
 
         self._printDefaultConfig: bool = None
-        self._printNonFiltered: bool = None
+        self._printAllFileNames: bool = None
         self._printVerbose: bool = None
         self._showRetries: bool = None
 
@@ -80,8 +80,8 @@ class LocalPyPIController:
         return self._printDefaultConfig
 
     @property
-    def printNonFiltered(self):
-        return self._printNonFiltered
+    def printAllFileNames(self):
+        return self._printAllFileNames
 
     @property
     def printVerbose(self):
@@ -153,9 +153,9 @@ class LocalPyPIController:
     def printDefaultConfig(self, new_printDefaultConfig: bool):
         self._printDefaultConfig = new_printDefaultConfig
 
-    @printNonFiltered.setter
-    def printNonFiltered(self, new_printNonFiltered: bool):
-        self._printNonFiltered = new_printNonFiltered
+    @printAllFileNames.setter
+    def printAllFileNames(self, new_printAllFileNames: bool):
+        self._printAllFileNames = new_printAllFileNames
 
     @printVerbose.setter
     def printVerbose(self, new_printVerbose: bool):
@@ -239,6 +239,14 @@ class LocalPyPIController:
 
         return updatedHTML
 
+    def _printPackageNamesInHTML(self, packageFiles: List[str], message: str):
+        print(message + " [" + str(len(packageFiles)) + "]:")
+        for packageName in packageFiles:
+            print(packageName)
+        if len(packageFiles) == 0:
+            print("-")
+        print("")
+
     def _downloadFilesInLocalPath(self, packagesToDownload: Dict[str, str], indexHTML: str, htmlFile: TextIOWrapper, printVerbose: bool = False, showRetries: bool = False):
         updatedHTML: str = indexHTML
 
@@ -277,7 +285,7 @@ class Add(LocalPyPIController):
 
         # 1. Set all the params we are going to use (let the ones we don't to None):
         self.printDefaultConfig = args.printDefaultConfig
-        self.printNonFiltered = args.printNonFiltered
+        self.printAllFileNames = args.printAllFileNames
         self.printVerbose = args.printVerbose
         self.showRetries = args.showRetries
 
@@ -289,7 +297,7 @@ class Add(LocalPyPIController):
         self.dryRun = args.dryRun
 
         # 2. Use only the ones we have set:
-        self._htmlManager.setFlags(self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific)
+        self._htmlManager.setFlags(self.printAllFileNames, self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific)
 
         if (self.includeDevs or self.includeRCs) and self._htmlManager.areWheelFiltersEnabled():
             print("\tWARNING! Development releases (devX) or release candidates (RCs) flags are enabled, as well as the wheel filters, so they could be discarded anyway. This is caused because of the order of application: (1st) flags, (2nd) wheel filters.")
@@ -360,8 +368,15 @@ class Add(LocalPyPIController):
         else:
             pypiPackageHTMLStr: str = pypiPackageHTML.decode("utf-8")
 
+        if self.printAllFileNames:
+            packageFiles: List[str] = list(self._htmlManager.getHRefsList(pypiPackageHTMLStr).keys())
+            self._printPackageNamesInHTML(packageFiles, "\nRetrieved package files (before filtering)")
+
         pypiPackageHTMLStr = self._htmlManager.filterInHTML(pypiPackageHTMLStr, self._regexZIPAndTars)
         linksToDownload: Dict[str, str] = self._htmlManager.getHRefsList(pypiPackageHTMLStr)
+
+        if self.printAllFileNames:
+            self._printPackageNamesInHTML(list(linksToDownload.keys()), "\nTo-be-downloaded package files (after filtering)")
 
         packageBaseHTML: str = self._htmlManager.getBaseHTML()
         _, packageBaseHTML = self._htmlManager.insertHTMLEntry(packageBaseHTML, "h1", "Links for " + self.packageName, {})
@@ -380,7 +395,7 @@ class Update(LocalPyPIController):
 
         # 1. Set all the params we are going to use (let the ones we don't to None):
         self.printDefaultConfig = args.printDefaultConfig
-        self.printNonFiltered = args.printNonFiltered
+        self.printAllFileNames = args.printAllFileNames
         self.printVerbose = args.printVerbose
         self.showRetries = args.showRetries
 
@@ -392,7 +407,7 @@ class Update(LocalPyPIController):
         self.dryRun = args.dryRun
 
         # 2. Use only the ones we have set:
-        self._htmlManager.setFlags(self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific)
+        self._htmlManager.setFlags(self.printAllFileNames, self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific)
 
         if (self.includeDevs or self.includeRCs) and self._htmlManager.areWheelFiltersEnabled():
             print("\tWARNING! Development releases (devX) or release candidates (RCs) flags are enabled, as well as the wheel filters, so they could be discarded anyway. This is caused because of the order of application: (1st) flags, (2nd) wheel filters.")
@@ -436,6 +451,10 @@ class Update(LocalPyPIController):
         else:
             pypiRemoteIndexStr: str = pypiRemoteIndex.decode("utf-8")
 
+        if self.printAllFileNames:
+            packageFiles: List[str] = list(self._htmlManager.getHRefsList(pypiRemoteIndexStr).keys())
+            self._printPackageNamesInHTML(packageFiles, "\nRetrieved package files (before filtering)")
+
         with open(self.packageHTMLFileFullName, "r") as pypiLocalIndexFile:
             pypiLocalIndex: str = pypiLocalIndexFile.read()
 
@@ -444,6 +463,11 @@ class Update(LocalPyPIController):
         remoteIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiRemoteIndexFiltered)
         localIndexHRefs: Dict[str, str] = self._htmlManager.getHRefsList(pypiLocalIndex)
         newPackagesToDownload: Dict[str, str] = self.__getNewPackagesInRemote(remoteIndexHRefs, localIndexHRefs)
+
+        if self.printAllFileNames:
+            self._printPackageNamesInHTML(list(remoteIndexHRefs.keys()), "\nIn-the-remote package files (after filtering)")
+            self._printPackageNamesInHTML(list(localIndexHRefs.keys()), "\nIn-the-local package files")
+            self._printPackageNamesInHTML(list(newPackagesToDownload.keys()), "\nTo-be-downloaded package files (after filtering, in-the-remote minus in-the-local ones)")
 
         with open(self.packageHTMLFileFullName, "r+") as pypiLocalIndexFile:
             self._downloadFilesInLocalPath(newPackagesToDownload, pypiLocalIndex, pypiLocalIndexFile, printVerbose=self.printVerbose, showRetries=self.showRetries)

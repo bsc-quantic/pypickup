@@ -13,7 +13,7 @@ class UpdateEP:
         parser.add_argument("-p", "--index-path", dest="pypiLocalPath", type=str, default=os.getenv("PYPICKUP_INDEX_PATH", default="./.pypickup/"), help="Local root path in which the package from the PyPI repository will be synchronized.")
 
         parser.add_argument("--df", "--print-default-config", dest="printDefaultConfig", default=False, action="store_true", help="Prints the default settings.")
-        parser.add_argument("--nf", "--print-non-filtered", dest="printNonFiltered", default=False, action="store_true", help="Prints all the package files before being filtered whatsoever, prints the ones being filtered and finally prints the resulting subset.")
+        parser.add_argument("-a", "--print-all-file-names", dest="printAllFileNames", default=False, action="store_true", help="Prints all the package files before being filtered whatsoever, prints the ones being filtered and finally prints the resulting subset that will be actually downloaded.")
         parser.add_argument("-v", "--verbose", dest="printVerbose", default=False, action="store_true", help="Prints the downloads in a more verbose fashion. WARNING! It slows down the execution.")
         parser.add_argument("--show-retries", dest="showRetries", default=False, action="store_true", help="Shows the retries in case there are any (e.g. due to a faulty network connection.")
         

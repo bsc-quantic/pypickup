@@ -153,7 +153,7 @@ class WheelsManager:
 
         return self.__getDefaultBehaviourForIncludingWheels()
 
-    def isValidWheel(self, wheelName: str) -> bool:
+    def isValidWheel(self, wheelName: str, printAllFileNames: bool = False) -> bool:
         """Checks out whether the 'wheelName' is a valid wheel name according to the wheel-filename package (https://pypi.org/project/wheel-filename/) and the settings file in settings/wheelFilters.py."""
 
         if os.path.splitext(wheelName)[1] == ".whl":
@@ -169,7 +169,8 @@ class WheelsManager:
                 if self.__needToBeIncluded(parsedWheel):
                     return True
                 else:
-                    print('Wheel ignored because of filters: "' + wheelName + '".')
+                    if printAllFileNames:
+                        print('Wheel ignored because of filters: "' + wheelName + '".')
 
                 return False
 
@@ -195,10 +196,16 @@ class HTMLManager:
     """
 
     def __init__(self):
+        self._printAllFileNames: bool
+
         self._onlySources: bool
         self._includeDevs: bool
         self._includeRCs: bool
         self._includePlatformSpecific: bool
+
+    @property
+    def printAllFileNames(self):
+        return self._printAllFileNames
 
     @property
     def onlySources(self):
@@ -216,6 +223,10 @@ class HTMLManager:
     def includePlatformSpecific(self):
         return self._includePlatformSpecific
 
+    @printAllFileNames.setter
+    def printAllFileNames(self, new_printAllFileNames: bool):
+        self._printAllFileNames = new_printAllFileNames
+
     @onlySources.setter
     def onlySources(self, new_onlySources: bool):
         self._onlySources = new_onlySources
@@ -232,7 +243,8 @@ class HTMLManager:
     def includePlatformSpecific(self, new_includePlatformSpecific: bool):
         self._includePlatformSpecific = new_includePlatformSpecific
 
-    def setFlags(self, onlySources: bool, includeDevs: bool, includeRCs: bool, includePlatformSpecific: bool):
+    def setFlags(self, printAllFileNames: bool, onlySources: bool, includeDevs: bool, includeRCs: bool, includePlatformSpecific: bool):
+        self.printAllFileNames = printAllFileNames
         self.onlySources = onlySources
         self.includeDevs = includeDevs
         self.includeRCs = includeRCs
@@ -339,6 +351,17 @@ class HTMLManager:
 
         return True
 
+    def _printFilteredOutFiles(self, nonFilteredEntries: bs4Element.ResultSet[bs4Element.Tag], filteredEntries: List[bs4Element.Tag]):
+        filteredCounter = 0
+        print("Filtered out entries:")
+        for nonFilteredEntry in nonFilteredEntries:
+            if not nonFilteredEntry in filteredEntries:
+                print(nonFilteredEntry.string)
+
+                filteredCounter += 1
+        if filteredCounter == 0: print("-")
+        print("\n\tIF YOU OBSERVED SOME ENTRY THAT SHOULD NOT BE FILTERED OUT, CHECK YOUR CURRENT COMMAND OPTIONS (--help) AND THE WHEEL FILTERS AT wheelFilters.py.\n")
+
     def filterInHTML(self, htmlContent: str, regexZIPAndTars: str) -> str:
         """Returns an HTML that keeps all those <a> entries from 'htmlContent' that follow all the specified set of rules (command flags and wheels filtering system stated in settings/wheelFilters.py). The ones that do not match any are filtered out."""
 
@@ -357,7 +380,7 @@ class HTMLManager:
             if self.__isPlatformSpecificWheel(aEntry.string) and not self.includePlatformSpecific:
                 continue
 
-            if not self.onlySources and self._wheelsManager.isValidWheel(aEntry.string):
+            if not self.onlySources and self._wheelsManager.isValidWheel(aEntry.string, self.printAllFileNames):
                 aEntriesOutput.append(aEntry)
             else:
                 reSult = re.match(regexZIPAndTars, aEntry.string)
@@ -372,6 +395,9 @@ class HTMLManager:
                             zipAndTarsDict[reSultName] = reSultExtension
 
         self.__addZipsOrTarsToEntries(zipAndTarsDict, originalSoup, aEntriesOutput)
+
+        if self.printAllFileNames:
+            self._printFilteredOutFiles(aEntries, aEntriesOutput)
 
         for aEntry in aEntriesOutput:
             outputSoup.html.body.append(aEntry)
