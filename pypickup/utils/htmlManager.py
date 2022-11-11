@@ -35,8 +35,14 @@ class WheelsManager:
     def packageName(self, new_wheelsConfig: str):
         self._wheelsConfig = new_wheelsConfig
 
+    def getWheelFiltersSettingsFilePath(self) -> str:
+        return self._wheelsConfig.settingsFilePath
+
     def areWheelFiltersEnabled(self) -> bool:
         return self._wheelsConfig.filtersEnabled == "yes"
+    
+    def inOrOutFilterEnabled(self) -> str:
+        return self.wheelsConfig.inOrOut
 
     def __getSimplifiedPythonVersionFromFilterFormat(self, pythonVersionInFilterFormat: str) -> str:
         simplifiedPythonVersion: str = pythonVersionInFilterFormat.replace(".", "")
@@ -250,8 +256,14 @@ class HTMLManager:
         self.includeRCs = includeRCs
         self.includePlatformSpecific = includePlatformSpecific
 
+    def getWheelFiltersSettingsFilePath(self) -> str:
+        return self._wheelsManager.getWheelFiltersSettingsFilePath()
+
     def areWheelFiltersEnabled(self) -> bool:
         return self._wheelsManager.areWheelFiltersEnabled()
+
+    def inOrOutFilterEnabled(self) -> str:
+        return self._wheelsManager.inOrOutFilterEnabled()
 
     def getBaseHTML(self) -> str:
         return self._baseHTML_fromScratch

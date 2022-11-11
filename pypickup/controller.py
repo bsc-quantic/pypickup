@@ -208,10 +208,12 @@ class LocalPyPIController:
             print("\tPackage HTML file dir: " + self.packageHTMLFileFullName)
             print("\tPython repository : " + self._remotePypiBaseDir)
             print("")
+            print("\tWheel filters settings file path: " + self._htmlManager.getWheelFiltersSettingsFilePath())
             print("\tDry runs path: " + self._dryRunsTmpDir)
+            print("")
             print("\tIncluded zips and tars: " + self._regexZIPAndTars)
             print("")
-            print("\tWheel filters enabled: " + str(self._htmlManager.areWheelFiltersEnabled()))
+            print("\tWheel filters enabled: " + str(self._htmlManager.areWheelFiltersEnabled()) + " [applying=" + self._htmlManager.inOrOutFilterEnabled() + "]")
             if self._htmlManager.areWheelFiltersEnabled():
                 print("\t\tIN filters: " + str(self._htmlManager._wheelsManager.wheelsConfig.inFilters))
                 print("\t\tOUT filters: " + str(self._htmlManager._wheelsManager.wheelsConfig.outFilters))
