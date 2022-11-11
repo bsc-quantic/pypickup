@@ -6,11 +6,11 @@ setup()
 
 
 # Create settings environment #
-settingsDir: str = os.path.join(os.getenv("HOME"), "pypickup")
+settingsDir: str = os.path.join(os.getenv("PYPICKUP_INDEX_PATH"), "settings")
 
 if os.path.exists(settingsDir):
     shutil.rmtree(settingsDir)
-os.mkdir(settingsDir)
+os.makedirs(settingsDir)
 
 wheelFiltersSettings_FileName: str = "wheelFiltersSettings.yaml"
 wheelFiltersSettings_OriginalPath: str = os.path.join("./pypickup/settings/", wheelFiltersSettings_FileName)

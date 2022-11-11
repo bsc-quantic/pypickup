@@ -20,8 +20,13 @@ export PYPICKUP_INDEX_PATH=/usr/local/pypickup
 
 ## Install
 
-To install pypickup you can do:
+Before installing pypickup you should do:
 
+```
+export PYPICKUP_INDEX_PATH=MY_LOCAL_REPOSITORY_PATH
+```
+
+Then:
 ```
 pip install pypickup
 ```
