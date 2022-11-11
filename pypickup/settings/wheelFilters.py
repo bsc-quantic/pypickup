@@ -1,41 +1,8 @@
-filtersEnabled_wheels = "yes"   # yes/no
-
-inOrOut_wheels = "in"          # in/out
-
-# ToDo?: use regexs. e.g.: "(python_tags>=1.2 | python_tags==1.01) & version>=18.0 & #^cp\d*d-\d*.whl$ | #^cp\d*d-manylinux14.whl$"
-
-#### IN filters settings ####
-inFilters_wheels = {
-    "version": [],
-    "python_tags": [],
-    "abi_tags": [],
-    "platform_tags": ["~manylinux"]
-}
-in_ORorAnd = "and"
-in_ORorAndAttributes = {
-    "version": "or",
-    "python_tags": "or",
-    "abi_tags": "or",
-    "platform_tags": "and",
-}
-
-#### OUT filters settings ####
-outFilters_wheels = {
-    "version": [],
-    "python_tags": [],
-    "abi_tags": [],
-    "platform_tags": ["~macos"]
-}
-out_ORorAnd = "and"
-out_ORorAndAttributes = {
-    "version": "or",
-    "python_tags": "or",
-    "abi_tags": "or",
-    "platform_tags": "or",
-}
-
 from typing import Dict, List
 
+import os, shutil
+
+import yaml
 
 class WheelsConfig:
 
@@ -115,19 +82,29 @@ class WheelsConfig:
     _incorrectInOrOutMessage: str = "Incorrect settings field 'inOrOut'! Set 'in' or 'out' in settings/wheelFilters.py."
 
     def __init__(self):
-        self._filtersEnabled: str = filtersEnabled_wheels
-        self._inOrOut: str = inOrOut_wheels
+        self._settingsFilePath = os.path.join(os.getenv("HOME"), "pypickup/wheelFiltersSettings.yaml")
 
-        self._inFilters: Dict[str, List[str]] = None
-        self._outFilters: Dict[str, List[str]] = None
+        stream = open(self._settingsFilePath, 'r')
+        settingsDict = yaml.safe_load(stream)
 
-        if "inFilters_wheels" in globals(): self._inFilters = inFilters_wheels
-        if "outFilters_wheels" in globals(): self._outFilters = outFilters_wheels
+        try:
+            self._filtersEnabled: str = settingsDict["filtersEnabled_wheels"]
+            self._inOrOut: str = settingsDict["inOrOut_wheels"]
 
-        self._in_ORorAnd: str = in_ORorAnd
-        self._in_ORorAndAttributes = in_ORorAndAttributes
-        self._out_ORorAnd: str = out_ORorAnd
-        self._out_ORorAndAttributes = out_ORorAndAttributes
+            self._inFilters: Dict[str, List[str]] = settingsDict["inFilters_wheels"]
+            self._outFilters: Dict[str, List[str]] = settingsDict["outFilters_wheels"]
+
+            self._in_ORorAnd: str = settingsDict["in_ORorAnd"]
+            self._in_ORorAndAttributes: Dict[str, List[str]] = settingsDict["in_ORorAndAttributes"]
+            self._out_ORorAnd: str = settingsDict["out_ORorAnd"]
+            self._out_ORorAndAttributes: Dict[str, List[str]] = settingsDict["out_ORorAndAttributes"]
+        except KeyError as key:
+            print("wheelFilterSettings.yaml file not correct. Field " + str(key) + " not found!")
+            exit(0)
+
+    @property
+    def settingsFilePath(self):
+        return self._settingsFilePath
 
     @property
     def filtersEnabled(self):

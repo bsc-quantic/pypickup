@@ -1,0 +1,35 @@
+{
+    "filtersEnabled_wheels": "yes",     # yes/no
+    "inOrOut_wheels": "out",            # in/out
+
+    #### IN filters settings ####
+    "inFilters_wheels": {
+        "version": [],
+        "python_tags": [],
+        "abi_tags": [],
+        "platform_tags": ["~manylinux"]
+    },
+
+    "in_ORorAnd": "and",
+    "in_ORorAndAttributes": {
+        "version": "or",
+        "python_tags": "or",
+        "abi_tags": "or",
+        "platform_tags": "and"
+    },
+
+    #### OUT filters settings ####
+    "outFilters_wheels": {
+        "version": [],
+        "python_tags": [],
+        "abi_tags": [],
+        "platform_tags": ["~macos"]
+    },
+    "out_ORorAnd": "and",
+    "out_ORorAndAttributes": {
+        "version": "or",
+        "python_tags": "or",
+        "abi_tags": "or",
+        "platform_tags": "or",
+    }
+}
