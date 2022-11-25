@@ -75,6 +75,20 @@ If we specify a package for the 'list' command, it will show a list of the downl
 pypickup list numpy
 ```
 
+And additional command is in development to configure the settings file for the wheels filtering.
+
+```
+pypickup config -h
+```
+
+## Examples
+
+To check what are all the available packages in the remote repository and which of them would be downloaded:
+
+```
+pypickup add -a --dry-run [package]
+```
+
 ## Development
 
 ### Add new commands

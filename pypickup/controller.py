@@ -213,10 +213,8 @@ class LocalPyPIController:
             print("")
             print("\tIncluded zips and tars: " + self._regexZIPAndTars)
             print("")
-            print("\tWheel filters enabled: " + str(self._htmlManager.areWheelFiltersEnabled()) + " [applying=" + self._htmlManager.inOrOutFilterEnabled() + "]")
-            if self._htmlManager.areWheelFiltersEnabled():
-                print("\t\tIN filters: " + str(self._htmlManager._wheelsManager.wheelsConfig.inFilters))
-                print("\t\tOUT filters: " + str(self._htmlManager._wheelsManager.wheelsConfig.outFilters))
+            print("\tWheel filters enabled: " + str(self._htmlManager.areWheelFiltersEnabled()))
+            print("\t\tUse the 'config' command to get the whole wheel filters configuration.")
             print("")
 
     def packageExists(self) -> bool:
@@ -540,3 +538,63 @@ class List(LocalPyPIController):
         print(printMessage.format(len(packagesDict)))
         for key, _ in packagesDict.items():
             print(key)
+
+class Config(LocalPyPIController):
+    def __init__(self):
+        self._printWheelFilters: bool = None
+
+    @property
+    def printWheelFilters(self):
+        return self._printWheelFilters
+
+    @printWheelFilters.setter
+    def printWheelFilters(self, new_printWheelFilters: str):
+        self._printWheelFilters = new_printWheelFilters
+
+    def parseScriptArguments(self, args: argparse.ArgumentParser):
+        # 1. Set all the params we are going to use (let the ones we don't to None):
+        self.printWheelFilters = args.showConfig
+
+    def _getTextInGreen(self, text: str) -> str:
+        CSI = "\x1B["
+        resultingText = CSI+"32;40m" + text + CSI + "0m"
+
+        return resultingText
+
+    def getWheelFiltersSettings(self) -> str:
+        """Gets the current settings at the settings location for the wheels filtering."""
+
+        resultingString: str = ""
+
+        resultingString += "Wheel filters settings file @ " + self._htmlManager.getWheelFiltersSettingsFilePath() + "\n"
+        resultingString += "\n"
+
+        filterEnabled: bool = self._htmlManager.areWheelFiltersEnabled()
+        inOrOut: str = self._htmlManager.inOrOutFilterEnabled()
+
+        resultingString += "Wheel filters enabled: " + str(filterEnabled) + " [applying=" + inOrOut + "]" + "\n"
+        if self._htmlManager.areWheelFiltersEnabled():
+            inFilterStr = "\n"
+            inFilterStr += "\tIN filters ('" + str(self._htmlManager._wheelsManager.wheelsConfig.in_ORorAnd) + "'):\t" + str(self._htmlManager._wheelsManager.wheelsConfig.inFilters) + "\n"
+            inFilterStr += "\t\t\t\t" + str(self._htmlManager._wheelsManager.wheelsConfig.in_ORorAndAttributes)
+
+            if inOrOut == "in":
+                resultingString += self._getTextInGreen(inFilterStr)
+            else:
+                resultingString += inFilterStr
+
+            resultingString += "\n"
+
+            outFilterStr = "\n"
+            outFilterStr += "\tOUT filters ('" + str(self._htmlManager._wheelsManager.wheelsConfig.out_ORorAnd) + "'):\t" + str(self._htmlManager._wheelsManager.wheelsConfig.outFilters) + "\n"
+            outFilterStr += "\t\t\t\t" + str(self._htmlManager._wheelsManager.wheelsConfig.out_ORorAndAttributes)
+
+            if inOrOut == "out":
+                resultingString += self._getTextInGreen(outFilterStr)
+            else:
+                resultingString += outFilterStr
+            
+            resultingString += "\n"
+
+        return resultingString
+

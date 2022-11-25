@@ -82,7 +82,12 @@ class WheelsConfig:
     _incorrectInOrOutMessage: str = "Incorrect settings field 'inOrOut'! Set 'in' or 'out' in settings/wheelFilters.py."
 
     def __init__(self):
-        self._settingsFilePath = os.path.join(os.getenv("PYPICKUP_INDEX_PATH"), "settings/wheelFiltersSettings.yaml")
+        settingsDir: str = os.path.join(os.getenv("PYPICKUP_INDEX_PATH"), "settings")
+        settingsFileName: str = "wheelFiltersSettings.yaml"
+        
+        self._setSettingsEnvironment(settingsDir, settingsFileName)
+
+        self._settingsFilePath = os.path.join(settingsDir, settingsFileName)
 
         stream = open(self._settingsFilePath, 'r')
         settingsDict = yaml.safe_load(stream)
@@ -141,6 +146,17 @@ class WheelsConfig:
     @property
     def incorrectInOrOutMessage(self):
         return self._incorrectInOrOutMessage
+
+    def _setSettingsEnvironment(self, settingsDir: str, settingsFileName: str):
+        if not os.path.exists(settingsDir):
+            os.makedirs(settingsDir)
+
+        wheelFiltersSettings_OriginalPath: str = os.path.join("./pypickup/settings/", settingsFileName)
+        if os.path.isfile(wheelFiltersSettings_OriginalPath):
+            wheelFilterSettings_UserFile = os.path.join(settingsDir, settingsFileName)
+
+            if not os.path.isfile(wheelFilterSettings_UserFile):
+                shutil.copyfile(wheelFiltersSettings_OriginalPath, wheelFilterSettings_UserFile)
 
     def getFilterKeys(self) -> List[str]:
         if self.inOrOut == "in":
