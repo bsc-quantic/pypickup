@@ -159,7 +159,7 @@ class WheelsManager:
 
         return self.__getDefaultBehaviourForIncludingWheels()
 
-    def isValidWheel(self, wheelName: str, printAllFileNames: bool = False) -> bool:
+    def isValidWheel(self, wheelName: str) -> bool:
         """Checks out whether the 'wheelName' is a valid wheel name according to the wheel-filename package (https://pypi.org/project/wheel-filename/) and the settings file in settings/wheelFilters.py."""
 
         if os.path.splitext(wheelName)[1] == ".whl":
@@ -174,9 +174,6 @@ class WheelsManager:
 
                 if self.__needToBeIncluded(parsedWheel):
                     return True
-                else:
-                    if printAllFileNames:
-                        print('Wheel ignored because of filters: "' + wheelName + '".')
 
                 return False
 
@@ -372,7 +369,7 @@ class HTMLManager:
 
                 filteredCounter += 1
         if filteredCounter == 0: print("-")
-        print("\n\tIF YOU OBSERVED SOME ENTRY THAT SHOULD NOT BE FILTERED OUT, CHECK YOUR CURRENT COMMAND OPTIONS (--help) AND THE WHEEL FILTERS AT wheelFilters.py.\n")
+        print("\n\tIF YOU OBSERVED SOME ENTRY THAT SHOULD NOT BE FILTERED OUT, CHECK YOUR CURRENT COMMAND OPTIONS (--help) AND THE WHEEL FILTERS WITH COMMAND 'config'.\n")
 
     def filterInHTML(self, htmlContent: str, regexZIPAndTars: str) -> str:
         """Returns an HTML that keeps all those <a> entries from 'htmlContent' that follow all the specified set of rules (command flags and wheels filtering system stated in settings/wheelFilters.py). The ones that do not match any are filtered out."""
@@ -392,7 +389,7 @@ class HTMLManager:
             if self.__isPlatformSpecificWheel(aEntry.string) and not self.includePlatformSpecific:
                 continue
 
-            if not self.onlySources and self._wheelsManager.isValidWheel(aEntry.string, self.printAllFileNames):
+            if not self.onlySources and self._wheelsManager.isValidWheel(aEntry.string):
                 aEntriesOutput.append(aEntry)
             else:
                 reSult = re.match(regexZIPAndTars, aEntry.string)
