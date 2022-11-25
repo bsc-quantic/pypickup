@@ -82,7 +82,7 @@ class WheelsConfig:
     _incorrectInOrOutMessage: str = "Incorrect settings field 'inOrOut'! Set 'in' or 'out' in settings/wheelFilters.py."
 
     def __init__(self):
-        settingsDir: str = os.path.join(os.getenv("PYPICKUP_INDEX_PATH"), "settings")
+        settingsDir: str = os.path.join(os.getenv("PYPICKUP_INDEX_PATH", default="./.pypickup/"), "settings")
         settingsFileName: str = "wheelFiltersSettings.yaml"
         
         self._setSettingsEnvironment(settingsDir, settingsFileName)
