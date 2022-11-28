@@ -24,6 +24,9 @@ dynamic = ["dependencies"]
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 
+[tool.setuptools.package-data]
+pypickup = ["*.yaml"]
+
 [tool.setuptools]
 packages = ["pypickup", "pypickup.cmd", "pypickup.settings", "pypickup.utils"]
 
