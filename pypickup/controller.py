@@ -195,7 +195,7 @@ class LocalPyPIController:
     def parseScriptArguments(self, args: argparse.ArgumentParser):
         """Parse the incoming arguments. A packageName and and pypiLocalPath are expected. Besides, it initializes derived class attributes."""
 
-        self.packageName = args.packageName
+        self.packageName = str(args.packageName).lower()
         self.pypiLocalPath = args.pypiLocalPath
 
     def printDefaultConfigIfRequired(self):
