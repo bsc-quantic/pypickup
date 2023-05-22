@@ -212,7 +212,7 @@ class LocalPyPIController:
         specifiedVersion = re.match(self._regexVersion, self.packageName)
         if specifiedVersion:
             self.packageName = specifiedVersion[1]
-            self._packageVersion = specifiedVersion[2]
+            self.packageVersion = self.packageName + "-" + specifiedVersion[2]
         elif "=" in self.packageName:
             print("Incorrect version format.")
             exit(0)
@@ -318,7 +318,7 @@ class Add(LocalPyPIController):
         self.dryRun = args.dryRun
 
         # 2. Use only the ones we have set:
-        self._htmlManager.setFlags(self.printAllFileNames, self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific, self.packageName + "-" + self.packageVersion)
+        self._htmlManager.setFlags(self.printAllFileNames, self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific, self.packageVersion)
 
         if (self.includeDevs or self.includeRCs) and self._htmlManager.areWheelFiltersEnabled():
             print("\tWARNING! Development releases (devX) or release candidates (RCs) flags are enabled, as well as the wheel filters, so they could be discarded anyway. This is caused because of the order of application: (1st) flags, (2nd) wheel filters.")
@@ -537,6 +537,14 @@ class List(LocalPyPIController):
     def repositoryExists(self) -> bool:
         return os.path.exists(self.baseHTMLFileFullName)
 
+    def filterByVersion(self, packagesList) -> List[str]:
+        resultingList: List[str] = list()
+        for packageName in packagesList:
+            if self.packageVersion in packageName:
+                resultingList.append(packageName)
+
+        return resultingList
+
     def listPackages(self):
         """Lists all the packages in the root HTML index, if self.packageName == None. Lists the downloaded files for package self.packageName otherwise."""
 
@@ -552,13 +560,14 @@ class List(LocalPyPIController):
             with open(self.packageHTMLFileFullName, "r") as packageHTMLFile:
                 htmlString = packageHTMLFile.read()
 
-            printMessage = "Found {} files for package '" + self.packageName + "':"
+            printMessage = "Found {} files for package '" + str(self.packageVersion if self.packageVersion else self.packageName) + "':"
 
-        packagesDict: Dict[str, str] = self._htmlManager.getHRefsList(htmlString)
+        packageFiles: List[str] = self._htmlManager.getHRefsList(htmlString).keys()
 
-        print(printMessage.format(len(packagesDict)))
-        for key, _ in packagesDict.items():
-            print(key)
+        filteredPackageFiles = self.filterByVersion(packageFiles)
+
+        print(printMessage.format(len(filteredPackageFiles)))
+        print('\n'.join(filteredPackageFiles))
 
 class Config(LocalPyPIController):
     def __init__(self):
