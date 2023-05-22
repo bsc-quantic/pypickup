@@ -49,7 +49,7 @@ class LocalPyPIController:
         self._includeRCs: bool = None
         self._includePlatformSpecific: bool = None
         
-        self._packageVersion: str = "None"
+        self._packageVersion: str = ""
 
         self._dryRun: bool = None
 
