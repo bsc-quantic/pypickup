@@ -1,6 +1,7 @@
 #! /usr/bin/python
 from io import TextIOWrapper
 import os
+import re
 import argparse
 import shutil
 from typing import Dict, List
@@ -25,6 +26,8 @@ class LocalPyPIController:
     _remotePypiBaseDir: str = "https://pypi.org/simple/"
 
     _regexZIPAndTars = r"^(.*)\.(zip|tar.gz|tar.bz2|tar.xz|tar.Z|tar)$"
+    _regexVersion = r"^(.*)==(\d+(?:\.\d+)*)$"
+    # _regexVersion = r"^(.*)==(\d+\.\d+(?:\.\d+)?)$"
 
     _dryRunsTmpDir = "./.pypickup_tmp/"
 
@@ -45,6 +48,8 @@ class LocalPyPIController:
         self._includeDevs: bool = None
         self._includeRCs: bool = None
         self._includePlatformSpecific: bool = None
+        
+        self._packageVersion: str = "None"
 
         self._dryRun: bool = None
 
@@ -106,6 +111,10 @@ class LocalPyPIController:
     @property
     def includePlatformSpecific(self):
         return self._includePlatformSpecific
+
+    @property
+    def packageVersion(self):
+        return self._packageVersion
 
     @property
     def dryRun(self):
@@ -181,6 +190,10 @@ class LocalPyPIController:
     def includePlatformSpecific(self, new_includePlatformSpecific: bool):
         self._includePlatformSpecific = new_includePlatformSpecific
 
+    @packageVersion.setter
+    def packageVersion(self, new_packageVersion: bool):
+        self._packageVersion = new_packageVersion
+
     @dryRun.setter
     def dryRun(self, new_dryRun: bool):
         self._dryRun = new_dryRun
@@ -193,9 +206,17 @@ class LocalPyPIController:
                 os.rmdir(directory)
 
     def parseScriptArguments(self, args: argparse.ArgumentParser):
-        """Parse the incoming arguments. A packageName and and pypiLocalPath are expected. Besides, it initializes derived class attributes."""
+        """Parse the incoming arguments. A packageName and pypiLocalPath are expected. Besides, it initializes derived class attributes."""
 
         self.packageName = str(args.packageName).lower()
+        specifiedVersion = re.match(self._regexVersion, self.packageName)
+        if specifiedVersion:
+            self.packageName = specifiedVersion[1]
+            self._packageVersion = specifiedVersion[2]
+        elif "=" in self.packageName:
+            print("Incorrect version format.")
+            exit(0)
+
         self.pypiLocalPath = args.pypiLocalPath
 
     def printDefaultConfigIfRequired(self):
@@ -297,7 +318,7 @@ class Add(LocalPyPIController):
         self.dryRun = args.dryRun
 
         # 2. Use only the ones we have set:
-        self._htmlManager.setFlags(self.printAllFileNames, self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific)
+        self._htmlManager.setFlags(self.printAllFileNames, self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific, self.packageName + "-" + self.packageVersion)
 
         if (self.includeDevs or self.includeRCs) and self._htmlManager.areWheelFiltersEnabled():
             print("\tWARNING! Development releases (devX) or release candidates (RCs) flags are enabled, as well as the wheel filters, so they could be discarded anyway. This is caused because of the order of application: (1st) flags, (2nd) wheel filters.")
@@ -407,7 +428,7 @@ class Update(LocalPyPIController):
         self.dryRun = args.dryRun
 
         # 2. Use only the ones we have set:
-        self._htmlManager.setFlags(self.printAllFileNames, self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific)
+        self._htmlManager.setFlags(self.printAllFileNames, self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific, self.packageName + "-" + self.packageVersion)
 
         if (self.includeDevs or self.includeRCs) and self._htmlManager.areWheelFiltersEnabled():
             print("\tWARNING! Development releases (devX) or release candidates (RCs) flags are enabled, as well as the wheel filters, so they could be discarded anyway. This is caused because of the order of application: (1st) flags, (2nd) wheel filters.")

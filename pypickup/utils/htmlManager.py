@@ -206,6 +206,8 @@ class HTMLManager:
         self._includeRCs: bool
         self._includePlatformSpecific: bool
 
+        self._packageVersion: str
+
     @property
     def printAllFileNames(self):
         return self._printAllFileNames
@@ -225,6 +227,10 @@ class HTMLManager:
     @property
     def includePlatformSpecific(self):
         return self._includePlatformSpecific
+    
+    @property
+    def packageVersion(self):
+        return self._packageVersion
 
     @printAllFileNames.setter
     def printAllFileNames(self, new_printAllFileNames: bool):
@@ -246,12 +252,18 @@ class HTMLManager:
     def includePlatformSpecific(self, new_includePlatformSpecific: bool):
         self._includePlatformSpecific = new_includePlatformSpecific
 
-    def setFlags(self, printAllFileNames: bool, onlySources: bool, includeDevs: bool, includeRCs: bool, includePlatformSpecific: bool):
+    @packageVersion.setter
+    def packageVersion(self, new_packageVersion: bool):
+        self._packageVersion = new_packageVersion
+
+    def setFlags(self, printAllFileNames: bool, onlySources: bool, includeDevs: bool, includeRCs: bool, includePlatformSpecific: bool, packageVersion: str):
         self.printAllFileNames = printAllFileNames
         self.onlySources = onlySources
         self.includeDevs = includeDevs
         self.includeRCs = includeRCs
         self.includePlatformSpecific = includePlatformSpecific
+
+        self.packageVersion = packageVersion
 
     def getWheelFiltersSettingsFilePath(self) -> str:
         return self._wheelsManager.getWheelFiltersSettingsFilePath()
@@ -360,6 +372,9 @@ class HTMLManager:
 
         return True
 
+    def __isRequiredVersion(self, fileName):
+        return self.packageVersion in fileName
+
     def _printFilteredOutFiles(self, nonFilteredEntries: bs4Element.ResultSet[bs4Element.Tag], filteredEntries: List[bs4Element.Tag]):
         filteredCounter = 0
         print("Filtered out entries:")
@@ -389,9 +404,12 @@ class HTMLManager:
             if self.__isPlatformSpecificWheel(aEntry.string) and not self.includePlatformSpecific:
                 continue
 
-            if not self.onlySources and self._wheelsManager.isValidWheel(aEntry.string):
+            if not self.__isRequiredVersion(aEntry.string):
+                continue
+
+            if not self.onlySources and self._wheelsManager.isValidWheel(aEntry.string):    # Checking wheels
                 aEntriesOutput.append(aEntry)
-            else:
+            else:                                                                           # Checking source codes
                 reSult = re.match(regexZIPAndTars, aEntry.string)
                 if reSult:
                     reSultName: str = reSult.group(1)

@@ -9,7 +9,7 @@ from pypickup.controller import Add
 class AddEP:
     @staticmethod
     def init_subparser(parser: argparse.ArgumentParser):
-        parser.add_argument("packageNameList", type=str, nargs="+", default="", help="Python packages list to add to the local repository.")
+        parser.add_argument("packageNameList", type=str, nargs="+", default="", help="Python packages list to add to the local repository. E.g. 'numpy', 'scipy pandas', 'numpy==1.8 tensorflow=1.12.2'.")
         parser.add_argument("-p", "--index-path", dest="pypiLocalPath", type=str, default=os.getenv("PYPICKUP_INDEX_PATH", default="./.pypickup/"), help="Local root path in which the package from the PyPI repository will be downloaded.")
 
         parser.add_argument("--df", "--print-default-config", dest="printDefaultConfig", default=False, action="store_true", help="Prints the default settings.")
