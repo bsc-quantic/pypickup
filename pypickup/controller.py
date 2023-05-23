@@ -198,6 +198,10 @@ class LocalPyPIController:
     def dryRun(self, new_dryRun: bool):
         self._dryRun = new_dryRun
 
+    def _removeFile(self, fileName: str):
+        if os.path.exists(fileName):
+            os.remove(fileName)
+
     def _removeDir(self, directory: str, recursively: bool = False):
         if os.path.exists(directory):
             if recursively:
@@ -524,6 +528,10 @@ class Remove(LocalPyPIController):
         
         self._writeFileFromTheStart(htmlFile, updatedHTML)
 
+        # Actually remove the package after having updated the index
+        for subpackage in subPackages:
+            self._removeFile(os.path.join(self.packageLocalPath, subpackage))
+
     def removePackage(self):
         """Removes the specified version for the self.packageName from the local repository, or the whole package if it has not being specified. Assumes that the package exists."""
 
@@ -560,7 +568,6 @@ class Remove(LocalPyPIController):
             print("Whole package '" + self.packageName + "' successfully removed.")
             
         
-
 class List(LocalPyPIController):
     def __init__(self):
         LocalPyPIController.__init__(self)
