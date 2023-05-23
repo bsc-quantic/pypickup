@@ -586,6 +586,23 @@ class List(LocalPyPIController):
 
         return resultingList
 
+    def listPackagesInTheRemote(self):
+        self._htmlManager.setFlags(None, None, None, None, None, self.packageVersion)
+
+        ok, status, pypiPackageHTML = self._networkManager.getLink(self._remotePypiBaseDir + self.packageName)
+        if not ok:
+            print(status)
+        else:
+            pypiPackageHTMLStr: str = pypiPackageHTML.decode("utf-8")
+
+        packageFiles: List[str] = self._htmlManager.getHRefsList(pypiPackageHTMLStr).keys()
+
+        filteredPackageFiles = self.filterByVersion(packageFiles)
+        filteredPackageFiles.sort()
+
+        print("Found " + str(len(filteredPackageFiles)) + " packages (IN THE REMOTE, i.e. NOT DOWNLOADED - perform the 'add' command to add the the package to the local repository):")
+        print('\n'.join(filteredPackageFiles))
+
     def listPackages(self):
         """Lists all the packages in the root HTML index, if self.packageName == None. Lists the downloaded files for package self.packageName otherwise."""
 
