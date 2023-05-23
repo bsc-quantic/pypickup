@@ -509,23 +509,57 @@ class Remove(LocalPyPIController):
             shutil.copytree(self.pypiLocalPath, self._dryRunsTmpDir)
             self.pypiLocalPath = self._dryRunsTmpDir
 
+    def __removeWholePackage(self, htmlFile: TextIOWrapper):
+        htmlFile.seek(0)
+
+        _, updatedHTML = self._htmlManager.removeHTMLEntry(htmlFile.read(), "a", self.packageName)
+        self._writeFileFromTheStart(htmlFile, updatedHTML)
+
+    def __removePackages(self, htmlFile: TextIOWrapper, subPackages: List[str]):
+        htmlFile.seek(0)
+
+        updatedHTML: str = htmlFile.read()
+        for subpackage in subPackages:
+            _, updatedHTML = self._htmlManager.removeHTMLEntry(updatedHTML, "a", subpackage)
+        
+        self._writeFileFromTheStart(htmlFile, updatedHTML)
+
     def removePackage(self):
-        """Removes the self.packageName from the local repository. Assumes it exists."""
+        """Removes the specified version for the self.packageName from the local repository, or the whole package if it has not being specified. Assumes that the package exists."""
 
-        with open(self.baseHTMLFileFullName, "r+") as baseHTMLFile:
-            baseHTMLStr: str = baseHTMLFile.read()
-            packageExisted, updatedHTML = self._htmlManager.removeHTMLEntry(baseHTMLStr, "a", self.packageName)
+        baseHTMLFile = open(self.baseHTMLFileFullName, "r+")
+        packageExist = self._htmlManager.existsHTMLEntry(baseHTMLFile.read(), "a", self.packageName)
 
-            if not packageExisted:
-                print("Package '" + self.packageName + "' was not being tracked yet.")
-                return
+        if not packageExist:
+            print("Package '" + self.packageName + "' was not being tracked yet.")
+            return
 
-            self._writeFileFromTheStart(baseHTMLFile, updatedHTML)
+        localPackageHTMLFile = open(self.packageHTMLFileFullName, "r+")
+        localPackageHTMLIndex = localPackageHTMLFile.read()
+        currentLocalPackages = self._htmlManager.getHRefsList(localPackageHTMLIndex).keys()
 
-        self._removeDir(self.packageLocalPath, True)
+        localSubPackagesToRemove: List[str] = list()
+        for package in currentLocalPackages:
+            if self.packageVersion in package:
+                localSubPackagesToRemove.append(package)
+        
+        removeWholePackage: bool = len(localSubPackagesToRemove) == len(currentLocalPackages)
+        if removeWholePackage:
+            self.__removeWholePackage(baseHTMLFile)
+        else:
+            self.__removePackages(localPackageHTMLFile, localSubPackagesToRemove)
 
-        print("'" + self.packageName + "' package successfully removed.")
+        # Must close files in case the whole directory (package) needs to be erased
+        localPackageHTMLFile.close()
+        baseHTMLFile.close()
 
+        print("Subpackages from package '" + self.packageName + "' successfully removed:\n" + '\n'.join(localSubPackagesToRemove) + "\n")
+
+        if removeWholePackage:
+            self._removeDir(self.packageLocalPath, True)
+            print("Whole package '" + self.packageName + "' successfully removed.")
+            
+        
 
 class List(LocalPyPIController):
     def __init__(self):
