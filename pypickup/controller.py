@@ -606,7 +606,8 @@ class List(LocalPyPIController):
         packageFiles: List[str] = self._htmlManager.getHRefsList(htmlString).keys()
 
         filteredPackageFiles = self.filterByVersion(packageFiles)
-
+        filteredPackageFiles.sort()
+        
         print(printMessage.format(len(filteredPackageFiles)))
         print('\n'.join(filteredPackageFiles))
 
