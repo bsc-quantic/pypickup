@@ -86,7 +86,22 @@ pypickup config -h
 To check what are all the available packages in the remote repository and which of them would be downloaded:
 
 ```
-pypickup add -a --dry-run [package]
+pypickup config --show                  # Shows the filters that will be applied for commands 'add' and 'update'
+
+pypickup add numpy                      # Downloads the whole package 'numpy', considering the active filters
+pypickup rm numpy                       # Removes the whole package 'numpy'
+
+pypickup add numpy==1.8                 # Downloads the package 'numpy' (version 1.8, all patches) to the local repository for the first time
+pypickup add -a --dry-run numpy         # Performs a test for command 'add', with the package 'numpy'. Prints the packages in the remote (PyPI), the ones that will be filtered out, and the actual ones that will be downloaded
+
+pypickup update numpy==1.9              # Downloads numpy version 1.9 (all patches) to the current local repository
+pypickup list numpy                     # Lists all the currently downloaded packages for the package 'numpy'
+pypickup rm numpy==1.8                  # Removes only numpy version 1.8 (and patches)
+pypickup rm numpy==1                    # Removes only numpy version 1 (and minors)
+
+pypickup add -s numpy                   # Downloads only the source files (not wheels)
+
+pypickup add --ps numpy                 # Downloads all the platform-specific packages for package 'numpy'. Some packages' wheels will only be able to be downloaded by means of this command, depending on how have they been built ($ pypickup add --help for documentation).
 ```
 
 ## Development
