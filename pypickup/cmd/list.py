@@ -17,12 +17,12 @@ class ListEP:
         controllerInstance = List()
         controllerInstance.parseScriptArguments(args)
 
-        if not controllerInstance.repositoryExists():
+        if args.remote:
+                controllerInstance.listPackagesInTheRemote()
+        elif not controllerInstance.repositoryExists():
             print("No local repository has been initialized yet. Download at least one package running the 'add' command.")
         else:
-            if args.remote:
-                controllerInstance.listPackagesInTheRemote()
-            elif args.packageName != "" and not controllerInstance.packageExists():
+            if args.packageName != "" and not controllerInstance.packageExists():
                 print("Package " + controllerInstance.packageName + " has not been added to the local repository yet. Run the 'add' command first.")
             else:
                 controllerInstance.listPackages()
