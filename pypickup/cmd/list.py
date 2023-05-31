@@ -20,7 +20,9 @@ class ListEP:
         if args.remote:
                 controllerInstance.listPackagesInTheRemote()
         elif not controllerInstance.repositoryExists():
-            print("No local repository has been initialized yet. Download at least one package running the 'add' command.")
+            print("No local repository has been initialized yet.\n" + \
+                  "    - Download at least one package running the 'add' command,\n" + \
+                  "    - Or use 'pypickup list -r package_name[==version]' to remotely list all the available packages.")
         else:
             if args.packageName != "" and not controllerInstance.packageExists():
                 print("Package " + controllerInstance.packageName + " has not been added to the local repository yet. Run the 'add' command first.")
