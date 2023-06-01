@@ -449,7 +449,7 @@ class Update(LocalPyPIController):
             if not localPackageName in remoteIndexHRefs:
                 if not (self.onlySources and os.path.splitext(localPackageName)[1] == ".whl"):
                     if additionalPackagesMessage == "":
-                        additionalPackagesMessage += "Packages in the local but not in the remote (check filter settings or ignore this comment if you specified a package version):\n"
+                        additionalPackagesMessage += "Packages in the local but not in the remote (check filter settings):\n"
                     additionalPackagesMessage += localPackageName + "\n"
 
         return additionalPackagesMessage
@@ -461,9 +461,10 @@ class Update(LocalPyPIController):
             if not remotePackageName in localIndexHRefs:
                 resultingDict[remotePackageName] = remotePackageURL
 
-        additionalPackagesMessage: str = self.__checkPackagesInLocalButNotInRemote(remoteIndexHRefs, localIndexHRefs)
-        if additionalPackagesMessage != "":
-            print("WARNING! " + additionalPackagesMessage)
+        if not self.packageVersion:
+            additionalPackagesMessage: str = self.__checkPackagesInLocalButNotInRemote(remoteIndexHRefs, localIndexHRefs)
+            if additionalPackagesMessage != "":
+                print("WARNING! " + additionalPackagesMessage)
 
         return resultingDict
 
