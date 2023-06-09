@@ -49,11 +49,11 @@ class AddEP:
             if controllerInstance.validPackageName():
                 controllerInstance.initLocalRepo()
 
-                needToAddPackage: bool = controllerInstance.canAddNewPackage()
-                if needToAddPackage:
-                    controllerInstance.addPackage()
+                if not controllerInstance.packageExists():
+                    controllerInstance.addNewPackageToIndex()
+                    controllerInstance.getPackage()
                 else:
-                    print("Package " + controllerInstance.packageName + " has been already added to the local repository. Try to run the 'update' command instead to synchronize changes against the remote PyPI.")
+                    controllerInstance.getPackageDiff()
             else:
                 print("Package " + controllerInstance.packageName + " does not exist in the remote repository (" + controllerInstance.remotePyPIRepository + ")")
 

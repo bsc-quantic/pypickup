@@ -358,33 +358,22 @@ class Add(LocalPyPIController):
 
         self.__createFileIfNeeded(self.baseHTMLFileFullName)
 
-    def __addEntryToBaseHTMLFile(self) -> bool:
+    def addNewPackageToIndex(self):
+        """Adds the self.packageName package to the base HTML index, if not exists already."""
+
         baseHTMLFile = open(self.baseHTMLFileFullName, "r+")
         htmlContent: str = baseHTMLFile.read()
 
         if len(htmlContent) == 0:
             htmlContent = self._htmlManager.getBaseHTML()
 
-        entryAlreadyExists, htmlUpdated = self._htmlManager.insertHTMLEntry(htmlContent, "a", self.packageName, {"href": "./" + self.packageName})
+        _, htmlUpdated = self._htmlManager.insertHTMLEntry(htmlContent, "a", self.packageName, {"href": "./" + self.packageName})
 
-        needToDownloadFiles: bool = False
-        if not entryAlreadyExists:
-            self._writeFileFromTheStart(baseHTMLFile, htmlUpdated)
-
-            needToDownloadFiles = True
+        self._writeFileFromTheStart(baseHTMLFile, htmlUpdated)
 
         baseHTMLFile.close()
 
-        return needToDownloadFiles
-
-    def canAddNewPackage(self) -> bool:
-        """Adds the self.packageName package to the base HTML index, if not exists already. If it does, it returns False, True otherwise."""
-
-        needToDownloadFiles: bool = self.__addEntryToBaseHTMLFile()
-
-        return needToDownloadFiles
-
-    def addPackage(self):
+    def getPackage(self):
         """Downloads all the files for the required package 'packageName', i.e. all the .whl, the .zip and the .tar.gz if necessary."""
 
         ok, status, pypiPackageHTML = self._networkManager.getLink(self._remotePypiBaseDir + self.packageName)
@@ -409,39 +398,7 @@ class Add(LocalPyPIController):
             packageHTML_file.write(packageBaseHTML)
 
             self._downloadFilesInLocalPath(linksToDownload, packageBaseHTML, packageHTML_file, printVerbose=self.printVerbose, showRetries=self.showRetries)
-
-
-class Update(LocalPyPIController):
-    def __init__(self):
-        Add.__init__(self)
-
-    def parseScriptArguments(self, args: argparse.ArgumentParser):
-        LocalPyPIController.parseScriptArguments(self, args)
-
-        # 1. Set all the params we are going to use (let the ones we don't to None):
-        self.printDefaultConfig = args.printDefaultConfig
-        self.printAllFileNames = args.printAllFileNames
-        self.printVerbose = args.printVerbose
-        self.showRetries = args.showRetries
-
-        self.onlySources = args.onlySources
-        self.includeDevs = args.includeDevs
-        self.includeRCs = args.includeRCs
-        self.includePlatformSpecific = args.includePlatformSpecific
-
-        self.dryRun = args.dryRun
-
-        # 2. Use only the ones we have set:
-        self._htmlManager.setFlags(self.printAllFileNames, self.onlySources, self.includeDevs, self.includeRCs, self.includePlatformSpecific, self.packageVersion)
-
-        if (self.includeDevs or self.includeRCs) and self._htmlManager.areWheelFiltersEnabled():
-            print("\tWARNING! Development releases (devX) or release candidates (RCs) flags are enabled, as well as the wheel filters, so they could be discarded anyway. This is caused because of the order of application: (1st) flags, (2nd) wheel filters.")
-            print("\tPLEASE, CHECK OUT YOUR WHEEL FILTERS.")
-
-        if self.dryRun:
-            shutil.copytree(self.pypiLocalPath, self._dryRunsTmpDir)
-            self.pypiLocalPath = self._dryRunsTmpDir
-
+        
     def __checkPackagesInLocalButNotInRemote(self, remoteIndexHRefs: Dict[str, str], localIndexHRefs: Dict[str, str]) -> str:
         additionalPackagesMessage: str = ""
         for localPackageName, localPackageURL in localIndexHRefs.items():
@@ -468,8 +425,8 @@ class Update(LocalPyPIController):
 
         return resultingDict
 
-    def synchronizeWithRemote(self):
-        """Synchronize the self.packageName against the PyPI remote repository. It adds the new available packages to the packageName/index.html and download them. Assumes the folders exists."""
+    def getPackageDiff(self):
+        """Synchronize the self.packageName against the PyPI remote repository, i.e. it downloads only the new packages available or, in general terms, the ones fulfiling the currently active filters."""
 
         ok, status, pypiRemoteIndex = self._networkManager.getLink(self._remotePypiBaseDir + self.packageName)
         if not ok:
