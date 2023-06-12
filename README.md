@@ -51,15 +51,7 @@ To add a package for the first time:
 pypickup add numpy
 ```
 
-This will create a folder in the default location (./.pypickup/) in which all the stablished files (.whl and .zip) for the specified package will be downloaded. Besides, it will create the corresponding metadata files (index.html) to track that package. The next time you want to synchronize the same package against the PyPI remote repository, you should do:
-
-```
-pypickup update numpy
-```
-
-This will download the new packages available in the remote, in case there is any. It'll do nothing otherwise. It also updates the index.html of the indicated package with the new downloaded packages, as expected.
-
-To redefine another default location we may set an environment variable PYPICKUP_INDEX_PATH. 
+This will create a folder in the default location (./.pypickup/) in which all the stablished files (.whl and .zip) for the specified package will be downloaded. Besides, it will create the corresponding metadata files (index.html) to track that package. If a new release has been added for the package, you should just run the same command and pypickup will download and add to the local index all the new files from the remote. I'll do nothing in case there's no new available files.
 
 2 more commands are available to remove packages and to list the available ones already added:
 
@@ -86,7 +78,7 @@ pypickup config -h
 To check what are all the available packages in the remote repository and which of them would be downloaded:
 
 ```
-pypickup config --show                  # Shows the filters that will be applied for commands 'add' and 'update'
+pypickup config --show                  # Shows the filters that will be applied for command 'add'
 
 pypickup add numpy                      # Downloads the whole package 'numpy', considering the active filters
 pypickup rm numpy                       # Removes the whole package 'numpy'
@@ -94,7 +86,7 @@ pypickup rm numpy                       # Removes the whole package 'numpy'
 pypickup add numpy==1.8                 # Downloads the package 'numpy' (version 1.8, all patches) to the local repository for the first time
 pypickup add -a --dry-run numpy         # Performs a test for command 'add', with the package 'numpy'. Prints the packages in the remote (PyPI), the ones that will be filtered out, and the actual ones that will be downloaded
 
-pypickup update numpy==1.9              # Downloads numpy version 1.9 (all patches) to the current local repository
+pypickup add numpy==1.9                 # Downloads numpy version 1.9 (all patches) to the current local repository
 pypickup list numpy                     # Lists all the currently downloaded packages for the package 'numpy'
 pypickup rm numpy==1.8                  # Removes only numpy version 1.8 (and patches)
 pypickup rm numpy==1                    # Removes only numpy version 1 (and minors)
