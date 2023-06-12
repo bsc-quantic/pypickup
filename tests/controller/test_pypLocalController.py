@@ -8,7 +8,7 @@ import tempfile
 import sys
 sys.path.append(".")
 
-from pypickup.controller import LocalPyPIController, Add, Update, Remove, List
+from pypickup.controller import LocalPyPIController, Add, Remove, List
 
 # GENERAL VARIABLES #
 htmlIndexName = "index.html"
@@ -100,13 +100,38 @@ def test_downloadFilesInLocalPath(packagesToDownload, currentHTML, expectedHTML)
     htmlFile.close()
     tempDir.cleanup()
 
-# class TestAdd(unittest.TestCase):
+#### 'list' battery test ####
 
+class ListTest:
 
-# class TestUpdate(unittest.TestCase):
-
-
-# class TestRemove(unittest.TestCase):
-
-
-# class TestList(unittest.TestCase):
+    testData = [
+        ((),
+"\
+<!DOCTYPE html>\
+<html>\
+ <body>\
+  <a href=\"./bs4\">bs4</a>\
+  <a href=\"./beautifulsoup4\">beautifulsoup4</a>\
+  <a href=\"./scipy\">scipy</a>\
+  <a href=\"./pandas\">pandas</a>\
+  <a href=\"./numpy\">numpy</a>\
+ </body>\
+</html>",
+"\
+<!DOCTYPE html>\
+<html>\
+ <body>\
+  <h1>\
+   Links for numpy\
+  </h1>\
+  <a href=\"./numpy-1.8.0.zip\">numpy-1.8.0.zip</a>\
+  <a href=\"./numpy-1.8.1.zip\">numpy-1.8.1.zip</a>\
+  <a href=\"./numpy-1.8.2.zip\">numpy-1.8.2.zip</a>\
+  <a href=\"./numpy-1.9.0.zip\">numpy-1.9.0.zip</a>\
+  <a href=\"./numpy-1.9.1.zip\">numpy-1.9.1.zip</a>\
+  <a href=\"./numpy-1.9.2.zip\">numpy-1.9.2.zip</a>\
+  <a href=\"./numpy-1.9.3.zip\">numpy-1.9.3.zip</a>\
+ </body>\
+</html>"
+    )
+    ]
