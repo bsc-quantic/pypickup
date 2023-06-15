@@ -4,7 +4,7 @@ import os
 import re
 import argparse
 import shutil
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from tqdm import tqdm
 
@@ -660,21 +660,48 @@ class RebuildIndex(LocalPyPIController):
         dirsAndFileNames: List[str] = os.listdir(self.pypiLocalPath)
         return [el for el in dirsAndFileNames if el != "settings" and "index.html" not in el]
 
-    def __getSubpackagesForPackage(self):
-        subpackagesList: List[str] = os.listdir(self.packageLocalPath)
-        return [file for file in subpackagesList if re.match(self._regexZIPAndTars, file) or ".whl" in file]
-
-    def rebuildIndex(self):
+    def __rebuildMainIndex(self):
         baseHTML: str = self._htmlManager.getBaseHTML()
 
+        directories: List[str] = self.__getDirectoriesInLocal()
+
+        with open(self.baseHTMLFileFullName, "r+") as baseHTMLFile:
+            self._addPackagesToIndex(baseHTML, baseHTMLFile, {"./" + dir:dir for dir in directories})
+
+        print("Main index rebuilt.")
+
+        return directories
+    
+    def __getSubpackagesForPackage(self, packageLocalPath: str):
+        subpackagesList: List[str] = os.listdir(packageLocalPath)
+        return [file for file in subpackagesList if re.match(self._regexZIPAndTars, file) or ".whl" in file]
+
+    def __rebuildIndexForPackage(self, package: str):
+        packageLocalPath: str = os.path.join(self.pypiLocalPath, package) + "/"
+        packageHTMLFileFullName: str = os.path.join(packageLocalPath, self._packageHTMLFileName)
+
+        baseHTML: str = self._htmlManager.getBaseHTML()
+
+        subpackages: List[str] = self.__getSubpackagesForPackage(packageLocalPath)
+
+        _, baseHTML = self._htmlManager.insertHTMLEntry(baseHTML, "h1", "Links for " + self.packageName, {})
+        with open(packageHTMLFileFullName, "w") as packageHTML_file:
+            self._addPackagesToIndex(baseHTML, packageHTML_file, {"./" + subpackage:subpackage for subpackage in subpackages})
+        
+        print("Index for '" + package + "' rebuilt.")
+
+    def rebuildAllIndices(self):
+        print()
+
+        currentPackages: List[str] = self.__rebuildMainIndex()
+        
+        for package in currentPackages:
+            self.__rebuildIndexForPackage(package)
+    
+    def rebuildIndex(self):
+        print()
+        
         if self.packageName == "":
-            directories: List[str] = self.__getDirectoriesInLocal()
-
-            with open(self.baseHTMLFileFullName, "r+") as baseHTMLFile:
-                self._addPackagesToIndex(baseHTML, baseHTMLFile, {"./" + dir:dir for dir in directories})
+            self.__rebuildMainIndex()
         else:
-            subpackages: List[str] = self.__getSubpackagesForPackage()
-
-            _, baseHTML = self._htmlManager.insertHTMLEntry(baseHTML, "h1", "Links for " + self.packageName, {})
-            with open(self.packageHTMLFileFullName, "w") as packageHTML_file:
-                self._addPackagesToIndex(baseHTML, packageHTML_file, {"./" + subpackage:subpackage for subpackage in subpackages})
+            self.__rebuildIndexForPackage(self.packageName)
