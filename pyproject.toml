@@ -43,6 +43,7 @@ add = "pypickup.cmd:AddEP"
 rm = "pypickup.cmd:RemoveEP"
 list = "pypickup.cmd:ListEP"
 config = "pypickup.cmd:ConfigEP"
+rebuild-index = "pypickup.cmd:RebuildIndexEP"
 
 [tool.black]
 line-length = 1000

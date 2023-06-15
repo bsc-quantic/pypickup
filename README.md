@@ -67,6 +67,14 @@ If we specify a package for the 'list' command, it will show a list of the downl
 pypickup list numpy
 ```
 
+A third command is available in order to rebuild the indices (both the main and the package ones), in case there is some issue and they have been removed/corrupted. This command just considers the actual available packages to reconstruct the indices, so everything is consistent. If something isn't working properly or pip fails looking for some package, this command may be useful
+
+```
+pypickup rebuild-index
+
+pypickup rebuild-index numpy
+```
+
 And additional command is in development to configure the settings file for the wheels filtering.
 
 ```

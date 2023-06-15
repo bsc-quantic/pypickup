@@ -4,7 +4,7 @@ import os
 import re
 import argparse
 import shutil
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from tqdm import tqdm
 
@@ -242,6 +242,9 @@ class LocalPyPIController:
             print("\t\tUse the 'config' command to get the whole wheel filters configuration.")
             print("")
 
+    def repositoryExists(self) -> bool:
+        return os.path.exists(self.baseHTMLFileFullName)
+
     def packageExists(self) -> bool:
         """Returns whether the self._packageName already exists in the self._pypiLocalPath. If the local repository has not even been created previously, returns False."""
 
@@ -258,10 +261,13 @@ class LocalPyPIController:
         file.truncate(0)
         file.write(textToWrite)
 
-    def __addPackageToIndex(self, indexHTML: str, file: TextIOWrapper, href: str, entryText: str) -> str:
-        _, updatedHTML = self._htmlManager.insertHTMLEntry(indexHTML, "a", entryText, {"href": href})
+    def _addPackagesToIndex(self, indexHTML: str, file: TextIOWrapper, entries: Dict[str, str]):
+        updatedHTML: str = indexHTML
+        for href, entryText in entries.items():
+            _, updatedHTML = self._htmlManager.insertHTMLEntry(updatedHTML, "a", entryText, {"href": href})
+        
         self._writeFileFromTheStart(file, updatedHTML)
-
+        
         return updatedHTML
 
     def _printPackageNamesInHTML(self, packageFiles: List[str], message: str):
@@ -291,7 +297,7 @@ class LocalPyPIController:
                         with open(self.packageLocalPath + fileName, "wb") as f:
                             f.write(content)
 
-                        updatedHTML = self.__addPackageToIndex(updatedHTML, htmlFile, "./" + fileName, fileName)
+                        updatedHTML = self._addPackagesToIndex(updatedHTML, htmlFile, {"./" + fileName: fileName})
 
                         actuallyDownloadedPackages += 1
 
@@ -533,9 +539,6 @@ class List(LocalPyPIController):
     def parseScriptArguments(self, args: argparse.ArgumentParser):
         LocalPyPIController.parseScriptArguments(self, args)
 
-    def repositoryExists(self) -> bool:
-        return os.path.exists(self.baseHTMLFileFullName)
-
     def filterByVersion(self, packagesList) -> List[str]:
         resultingList: List[str] = list()
         for packageName in packagesList:
@@ -645,3 +648,33 @@ class Config(LocalPyPIController):
 
         return resultingString
 
+
+class RebuildIndex(LocalPyPIController):
+    def __init__(self):
+        LocalPyPIController.__init__(self)
+
+    def parseScriptArguments(self, args: argparse.ArgumentParser):
+        LocalPyPIController.parseScriptArguments(self, args)
+
+    def __getDirectoriesInLocal(self):
+        dirsAndFileNames: List[str] = os.listdir(self.pypiLocalPath)
+        return [el for el in dirsAndFileNames if el != "settings" and "index.html" not in el]
+
+    def __getSubpackagesForPackage(self):
+        subpackagesList: List[str] = os.listdir(self.packageLocalPath)
+        return [file for file in subpackagesList if re.match(self._regexZIPAndTars, file) or ".whl" in file]
+
+    def rebuildIndex(self):
+        baseHTML: str = self._htmlManager.getBaseHTML()
+
+        if self.packageName == "":
+            directories: List[str] = self.__getDirectoriesInLocal()
+
+            with open(self.baseHTMLFileFullName, "r+") as baseHTMLFile:
+                self._addPackagesToIndex(baseHTML, baseHTMLFile, {"./" + dir:dir for dir in directories})
+        else:
+            subpackages: List[str] = self.__getSubpackagesForPackage()
+
+            _, baseHTML = self._htmlManager.insertHTMLEntry(baseHTML, "h1", "Links for " + self.packageName, {})
+            with open(self.packageHTMLFileFullName, "w") as packageHTML_file:
+                self._addPackagesToIndex(baseHTML, packageHTML_file, {"./" + subpackage:subpackage for subpackage in subpackages})
