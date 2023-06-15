@@ -104,6 +104,8 @@ pypickup add --ps numpy                 # Downloads all the platform-specific pa
 
 pypickup list -r pandas                 # Lists the whole set of available packages in the remote repository for 'pandas'. Does not filter out any package, i.e shows everything. Please, consider that if you do now '$ pypickup add pandas', not all the previously shown packages will be downloaded, since the command 'add' is filtering out some packages by default, like the developement releases (alphas, betas...), the release candidates, and so on. See --help for more details on command 'add'
 pypickup list -r scipy==1.7.2           # Lists available packages for scipy, version 1.7.2
+
+pypickup rebuild-index -a               # Rebuild all indices, including the main HTML and every one of the currently downloaded packages
 ```
 
 ## Development
